@@ -20,3 +20,4 @@
 - [x] Development & Training Speed Index (`S+/A+/A/B/C`).
 - [x] FM Genie Scout Style Baseline Progress Tracker (`T0`) with `+1 / +2` live attribute deltas & SVG growth curve.
 - [x] Live Save Disk Watcher & 1-click Save Reload (`Kaydı Yenile`).
+- [x] Player Status Colour Coding (`Sakat / Cezalı / Kondisyon Düşük / Kirada / Sözleşme Bitiyor / Serbest`) with badge system.

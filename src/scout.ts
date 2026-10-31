@@ -38,6 +38,8 @@ interface ScoutPlayer {
   wage: number;
   contract_end_year: number;
   contract_end_str: string;
+  status_code: number;
+  status_label: string;
   consistency: number;
   important_matches: number;
   injury_proneness: number;
@@ -542,6 +544,46 @@ function formatHiddenStat(val: number, inverseGood: boolean = false): string {
   return `<span class="text-slate-300 font-mono">${val}</span>`;
 }
 
+function formatPlayerStatus(p: ScoutPlayer): { nameColorClass: string; badge: string } {
+  const code = p.status_code || 0;
+
+  // Priority: Injured(1) > Suspended(2) > Low Condition(3) > Loaned Out(4) > Expiring Contract(5) > Free Agent(6) > Normal(0)
+  switch (code) {
+    case 1:
+      return {
+        nameColorClass: "text-rose-400 font-bold",
+        badge: `<span class="text-[8px] bg-rose-950/80 text-rose-300 border border-rose-600/70 px-1 rounded font-bold ml-1" title="Sakat">🏥</span>`
+      };
+    case 2:
+      return {
+        nameColorClass: "text-orange-400 font-bold",
+        badge: `<span class="text-[8px] bg-orange-950/80 text-orange-300 border border-orange-600/70 px-1 rounded font-bold ml-1" title="Cezalı">🟨</span>`
+      };
+    case 3:
+      return {
+        nameColorClass: "text-amber-400 font-semibold",
+        badge: `<span class="text-[8px] bg-amber-950/80 text-amber-300 border border-amber-600/70 px-1 rounded font-bold ml-1" title="Kondisyon Düşük">⚡</span>`
+      };
+    case 4:
+      return {
+        nameColorClass: "text-purple-300 font-semibold",
+        badge: `<span class="text-[8px] bg-purple-950/80 text-purple-300 border border-purple-600/70 px-1 rounded font-bold ml-1" title="Kirada">${p.loan_parent_club_name ? p.loan_parent_club_name.slice(0, 8) : 'Kirada'}</span>`
+      };
+    case 5:
+      return {
+        nameColorClass: "text-cyan-300 font-semibold",
+        badge: `<span class="text-[8px] bg-cyan-950/80 text-cyan-300 border border-cyan-600/70 px-1 rounded font-bold ml-1" title="Sözleşme Bitiyor">⏳</span>`
+      };
+    case 6:
+      return {
+        nameColorClass: "text-slate-400 font-medium",
+        badge: `<span class="text-[8px] bg-slate-900 text-slate-400 border border-slate-600/70 px-1 rounded font-bold ml-1" title="Serbest (Kulüpsüz)">F/A</span>`
+      };
+    default:
+      return { nameColorClass: "text-white", badge: "" };
+  }
+}
+
 function formatDevTierBadge(tier: string, score: number): string {
   let color = "bg-slate-800 text-slate-300 border-slate-700";
   if (tier === "S+") color = "bg-purple-950/80 text-purple-300 border-purple-700/80";
@@ -612,14 +654,13 @@ async function queryScoutPlayers(offsetVal: number = 0): Promise<void> {
 
     tbody.innerHTML = players.map((p, idx) => {
       const rowNum = scoutPageOffset + idx + 1;
-      const isLoanedOut = p.is_on_loan && p.loan_parent_club_name === "Beşiktaş A.Ş.";
-      const isLoanedIn = p.is_on_loan && p.club_name === "Beşiktaş A.Ş.";
+      const fmt = formatPlayerStatus(p);
+      const isLoanedOut = p.is_on_loan && p.loan_parent_club_name;
+      const isLoanedIn = p.is_on_loan && !p.loan_parent_club_name;
 
       let clubCellHtml = p.club_name;
       if (isLoanedOut) {
-        clubCellHtml = `<span class="text-white">${p.club_name}</span> <span class="text-[9px] bg-purple-950 text-purple-300 border border-purple-800 px-1 py-0.2 rounded font-bold">Kirada</span>`;
-      } else if (isLoanedIn) {
-        clubCellHtml = `<span class="text-white">${p.club_name}</span> <span class="text-[9px] bg-blue-950 text-blue-300 border border-blue-800 px-1 py-0.2 rounded font-bold">Kiralık</span>`;
+        clubCellHtml = `<span class="text-slate-200">${p.club_name}</span>`;
       }
 
       // Delta (+1, +2)
@@ -636,10 +677,13 @@ async function queryScoutPlayers(offsetVal: number = 0): Promise<void> {
           <td onclick="toggleShortlistStar(event, ${p.uid})" class="px-1.5 py-1 text-center border-r border-indigo-950/40 hover:scale-125 transition">
             <i class="fa-regular fa-star text-slate-600 hover:text-amber-400"></i>
           </td>
-          <td class="px-2.5 py-1 font-semibold text-white whitespace-nowrap border-r border-indigo-950/40">
+          <td class="px-2.5 py-1 whitespace-nowrap border-r border-indigo-950/40">
             <div class="flex items-center justify-between gap-1.5">
-              <span>${p.name}</span>
-              ${p.age <= 21 && p.pa >= 150 ? '<span class="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1 rounded font-bold">WK</span>' : ''}
+              <span class="${fmt.nameColorClass}">${p.name}</span>
+              <span class="whitespace-nowrap">
+                ${fmt.badge}
+                ${p.age <= 21 && p.pa >= 150 ? '<span class="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1 rounded font-bold ml-0.5">WK</span>' : ''}
+              </span>
             </div>
           </td>
           <td class="px-2 py-1 text-center font-mono text-slate-200 border-r border-indigo-950/40">${p.age}</td>
@@ -721,6 +765,15 @@ function renderPlayerModal(p: any): void {
 
   const positionsList = (p.positions || []).join(", ");
   const posRatings = p.positional_ratings || {};
+
+  // Modal status badge helpers
+  const modalStatusBadges: string[] = [];
+  if (p.status_label === "Sakat") modalStatusBadges.push(`<span class="text-xs px-2 py-0.5 rounded bg-rose-950 text-rose-300 font-bold border border-rose-600/70">🏥 Sakat</span>`);
+  if (p.status_label === "Cezalı") modalStatusBadges.push(`<span class="text-xs px-2 py-0.5 rounded bg-orange-950 text-orange-300 font-bold border border-orange-600/70">🟨 Cezalı</span>`);
+  if (p.status_label === "Kirada") modalStatusBadges.push(`<span class="text-xs px-2 py-0.5 rounded bg-purple-950 text-purple-300 font-bold border border-purple-600/70">📤 Kirada: ${p.loan_parent_club_name || 'Kulüp'}</span>`);
+  if (p.status_label === "Kondisyon %") modalStatusBadges.push(`<span class="text-xs px-2 py-0.5 rounded bg-amber-950 text-amber-300 font-bold border border-amber-600/70">⚡ Kondisyon Düşük (%${Math.round((p.raw_condition || 10000)/100)})</span>`);
+  if (p.status_label === "Sözleşme Bitiyor") modalStatusBadges.push(`<span class="text-xs px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 font-bold border border-cyan-600/70">⏳ Sözleşme Bitiyor (${p.contract_end_str || ''})</span>`);
+  if (p.status_label === "Serbest") modalStatusBadges.push(`<span class="text-xs px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-bold border border-slate-600/70">F/A Serbest</span>`);
 
   // Positional bars
   const posKeys = ["GK", "DC", "FB", "DM", "MC", "W", "AMC", "ST"];
@@ -822,10 +875,10 @@ function renderPlayerModal(p: any): void {
     <!-- Top Header -->
     <div class="flex flex-wrap items-center justify-between border-b border-indigo-950 pb-3">
       <div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <h3 class="text-lg font-bold text-white">${p.name}</h3>
           <span class="text-xs px-2 py-0.5 rounded bg-indigo-900/70 text-cyan-300 font-semibold">${positionsList}</span>
-          ${p.is_on_loan ? '<span class="text-xs px-2 py-0.5 rounded bg-purple-900 text-purple-200 font-bold">Kiralık</span>' : ''}
+          ${modalStatusBadges.map(b => b).join('')}
         </div>
         <p class="text-xs text-slate-400 mt-0.5">
           ${p.club_name} • ${p.nation_name} • ${p.age} Yaş • Sol/Sağ: ${p.left_foot}/20 - ${p.right_foot}/20

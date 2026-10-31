@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-10-31
+### Added
+- **Player Status Color Coding & Badges:** Player names are now visually colour-coded and badge-annotated based on their real-time status —
+  - 🏥 **Sakat (Injured)** → Bright Rose (from global injury database)
+  - 🟨 **Cezalı (Suspended)** → Orange (suspension table lookup)
+  - ⚡ **Kondisyon Düşük (Low Condition < 73%)** → Amber (matches FM 27 fitness indicator)
+  - 📤 **Kirada (Loaned Out)** → Purple with parent-club label
+  - ⏳ **Sözleşme Bitiyor (Expiring Contract)** → Cyan (from `transfer_value_state`)
+  - F/A **Serbest (Free Agent)** → Dim Slate
+- **Status Research:** FM 27 save database (`injuries`, `suspensions`, `raw_condition`, `on_loan`, `transfer_value_state`) fully indexed during save load.
+
 ## [3.0.0] - 2026-10-31
 ### Added
 - **Dedicated Type-and-Confirm Club Picker (Kulüp Seçici):** Replaced static dropdown with autocomplete datalist input + confirm/clear buttons to instantly filter full club squads including loaned-out (`Kirada`) and promoted youth players.

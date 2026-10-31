@@ -288,6 +288,8 @@ class ScoutDatabase:
                 wage INTEGER,
                 contract_end_year INTEGER,
                 contract_end_str TEXT,
+                status_code INTEGER,
+                status_label TEXT,
                 consistency INTEGER,
                 important_matches INTEGER,
                 injury_proneness INTEGER,
@@ -333,6 +335,7 @@ class ScoutDatabase:
                 club_name, loan_parent_club_name, contract_club_name, is_on_loan, nation_name,
                 positions, natural_positions, left_foot, right_foot,
                 height_cm, transfer_value, wage, contract_end_year, contract_end_str,
+                status_code, status_label,
                 consistency, important_matches,
                 injury_proneness, dirtiness, versatility, ambition,
                 loyalty, pressure, professionalism, sportsmanship,
@@ -343,6 +346,7 @@ class ScoutDatabase:
                 :club_name, :loan_parent_club_name, :contract_club_name, :is_on_loan, :nation_name,
                 :positions, :natural_positions, :left_foot, :right_foot,
                 :height_cm, :transfer_value, :wage, :contract_end_year, :contract_end_str,
+                :status_code, :status_label,
                 :consistency, :important_matches,
                 :injury_proneness, :dirtiness, :versatility, :ambition,
                 :loyalty, :pressure, :professionalism, :sportsmanship,
@@ -493,6 +497,7 @@ class ScoutDatabase:
                    club_name, loan_parent_club_name, contract_club_name, is_on_loan, nation_name,
                    positions, natural_positions, left_foot, right_foot,
                    height_cm, transfer_value, wage, contract_end_year, contract_end_str,
+                   status_code, status_label,
                    consistency, important_matches,
                    injury_proneness, dirtiness, versatility, ambition,
                    loyalty, pressure, professionalism, sportsmanship,
@@ -914,6 +919,27 @@ class UniversalScoutEngine:
             all_players = save.players()
             total_extracted = len(all_players)
 
+            # Build status lookup dictionaries from global save injury & suspension tables
+            injured_uids = set()
+            if hasattr(save, "injuries") and callable(save.injuries):
+                try:
+                    for inj in save.injuries():
+                        inj_uid = getattr(inj, "player_uid", 0)
+                        if inj_uid and str(getattr(inj, "kind", "history")).lower() == "current":
+                            injured_uids.add(inj_uid)
+                except Exception as exc:
+                    sys.stderr.write(f"[Scout Injury Load Warning] {exc}\n")
+
+            suspended_uids = set()
+            if hasattr(save, "suspensions") and callable(save.suspensions):
+                try:
+                    for s in save.suspensions():
+                        s_uid = getattr(s, "player_uid", 0)
+                        if s_uid:
+                            suspended_uids.add(s_uid)
+                except Exception as exc:
+                    sys.stderr.write(f"[Scout Suspension Load Warning] {exc}\n")
+
             records: List[Dict[str, Any]] = []
             for p in all_players:
                 uid = p.uid
@@ -944,6 +970,33 @@ class UniversalScoutEngine:
                 contract_end = getattr(contract_obj, "end", None) if contract_obj else None
                 contract_end_year = contract_end.year if contract_end and hasattr(contract_end, "year") else 0
                 contract_end_str = str(contract_end) if contract_end else "-"
+
+                # ==================== PLAYER STATUS / COLOR CODE ====================
+                # Priority order: Injured(1) > Suspended(2) > Low Condition(3) > Loaned Out(4) > Expiring Contract(5) > Normal(0)
+                raw_condition = getattr(p, "raw_condition", 10000) or 10000
+                tvs_state = str(getattr(p, "transfer_value_state", "ok") or "ok")
+
+                if uid in injured_uids:
+                    status_code = 1
+                    status_label = "Sakat"
+                elif uid in suspended_uids:
+                    status_code = 2
+                    status_label = "Cezalı"
+                elif raw_condition < 7300:
+                    status_code = 3
+                    status_label = "Kondisyon %"
+                elif is_on_loan:
+                    status_code = 4
+                    status_label = "Kirada"
+                elif tvs_state == "placeholder":
+                    status_code = 5
+                    status_label = "Sözleşme Bitiyor"
+                elif club_name.startswith("Serbest"):
+                    status_code = 6
+                    status_label = "Serbest"
+                else:
+                    status_code = 0
+                    status_label = ""
 
                 nat_pos = list(p.natural_positions) if hasattr(p, "natural_positions") else []
                 acc_pos = list(p.accomplished_positions) if hasattr(p, "accomplished_positions") else []
@@ -1042,6 +1095,9 @@ class UniversalScoutEngine:
                     "loan_parent_club_name": loan_parent,
                     "contract_club_name": contract_club,
                     "is_on_loan": is_on_loan,
+                    "status_code": status_code,
+                    "status_label": status_label,
+                    "raw_condition": raw_condition,
                     "nation_name": nation_name,
                     "positions": all_pos,
                     "natural_positions": nat_pos,
@@ -1099,6 +1155,8 @@ class UniversalScoutEngine:
                     "wage": wage,
                     "contract_end_year": contract_end_year,
                     "contract_end_str": contract_end_str,
+                    "status_code": status_code,
+                    "status_label": status_label,
                     "consistency": consistency,
                     "important_matches": important_matches,
                     "injury_proneness": injury_proneness,
