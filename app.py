@@ -4,6 +4,8 @@ import csv
 import io
 import glob
 import json
+import threading
+from contextlib import asynccontextmanager
 from typing import Optional
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +16,23 @@ import uvicorn
 from fmf_parser import parse_fmf_file
 from scout_engine import scout_engine
 
-app = FastAPI(title="FM Tactic Studio & Universal Scout")
+
+def _background_load_initial_save() -> None:
+    saves = scout_engine.list_local_saves()
+    if saves:
+        try:
+            scout_engine.load_save(str(saves[0]["id"]))
+        except Exception as exc:
+            sys.stderr.write(f"[Scout Startup Warning] {exc}\n")
+
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    threading.Thread(target=_background_load_initial_save, daemon=True).start()
+    yield
+
+
+app = FastAPI(title="FM Tactic Studio & Universal Scout", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -76,16 +94,6 @@ def load_tactics_data() -> dict:
 def save_tactics_data(data: dict) -> None:
     with open(NOTES_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-
-
-@app.on_event("startup")
-def auto_load_latest_save() -> None:
-    saves = scout_engine.list_local_saves()
-    if saves:
-        try:
-            scout_engine.load_save(str(saves[0]["id"]))
-        except Exception as exc:
-            sys.stderr.write(f"[Scout Startup Warning] {exc}\n")
 
 
 @app.get("/api/tactics")
