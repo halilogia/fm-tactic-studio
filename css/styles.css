@@ -39,6 +39,27 @@ html, body {
   cursor: grabbing;
 }
 
+.player-role-label {
+  max-width: 112px;
+  margin-top: 1px;
+  padding: 1px 4px;
+  border: 1px solid #64748b;
+  border-radius: 4px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-token.selected .player-role-label {
+  border-color: #22d3ee;
+  color: #a5f3fc;
+}
+
 .player-token .player-circle {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }

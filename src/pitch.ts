@@ -105,7 +105,7 @@ function renderPitch(): void {
           isBeingDragged ? 'z-40 opacity-90 pointer-events-none' : (isSelected ? 'selected z-30' : 'z-20')
         }"
       >
-        <div class="player-circle relative w-11 h-11 rounded-full bg-gradient-to-tr ${
+        <div class="player-circle relative w-10 h-10 rounded-full bg-gradient-to-tr ${
           p.pos === 'GK' ? 'from-amber-600 to-yellow-400' : 'from-indigo-700 to-cyan-500'
         } border-2 ${
           isSwapTarget
@@ -117,10 +117,13 @@ function renderPitch(): void {
             ${p.duty}
           </span>
         </div>
-        <div class="mt-1 bg-slate-900/95 backdrop-blur px-1.5 py-0.5 rounded text-[9px] font-semibold text-white whitespace-nowrap border ${
+        <div class="mt-0.5 bg-slate-900/95 backdrop-blur px-1.5 py-0.5 rounded text-[9px] font-semibold text-white whitespace-nowrap border ${
           isSwapTarget ? 'border-amber-400 text-amber-300' : (isSelected ? 'border-cyan-400/80 text-cyan-200' : 'border-slate-700/70')
         } shadow">
           <span class="text-cyan-300 font-bold">${p.slotId}</span> • ${p.name.length > 12 ? p.name.slice(0, 12) + '.' : p.name}
+        </div>
+        <div class="player-role-label" title="${T(p.role || 'Rol seçilmedi')}">
+          ${T(p.role || 'Rol seçilmedi')}
         </div>
       </div>
     `;
@@ -130,9 +133,10 @@ function renderPitch(): void {
 }
 
 function selectPlayer(idx: number): void {
-  selectedPlayerIdx = idx;
   const p = currentPlayers[idx];
   if (!p) return;
+  selectedPlayerIdx = idx;
+  switchTab("playerTab");
 
   const shirtEl = document.getElementById("playerShirtNum");
   const titleEl = document.getElementById("playerPosTitle");

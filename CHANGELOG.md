@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.5.1] - 2026-10-31
 ### Fixed
+- Player roles are visible beneath all pitch tokens and update when edited. Selecting a player opens the role inspector; manual roles are explicitly distinguished from unreadable FMF role data.
 - Removed hash-generated tactic formations, mentalities and instructions; archive metadata remains available and the UI explains unreadable tactic content.
 - Best positional rating now follows the player's registered positions; raw position values are visible in the player card.
 - Growth history contains only dated observations, including low-CA academy players; same-day reloads replace points and older saves discard future branch points. Baseline reset refreshes the chart immediately.

@@ -323,6 +323,10 @@ const EXACT_EN: Record<string, string> = {
   "Sağ Forvet": "Right Forward",
   "Sol Forvet": "Left Forward",
 
+  "Oyuncu Rolü (manuel)": "Player Role (manual)",
+  "Rol seçilmedi": "No role selected",
+  "Sahadaki roller manuel planınızdır; .fmf içindeki oyuncu rolleri bu sürümde okunamıyor.": "Pitch roles belong to your manual plan; this version cannot read player roles from .fmf files.",
+
   // ---- Role names ----
   "Libero Kaleci": "Sweeper Keeper",
   "İki Yönlü Bek": "Full-Back",
