@@ -27,13 +27,21 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_candidate_save_dirs() -> List[str]:
-    """Returns candidate FM save directories without any hardcoded personal paths."""
+    """Returns candidate FM save directories prioritizing official Documents\\Sports Interactive first."""
     dirs: List[str] = []
 
     env_dir = os.environ.get("FM_SAVES_DIR")
     if env_dir and os.path.exists(env_dir):
         dirs.append(env_dir)
 
+    # 1. Official Documents\Sports Interactive\Football Manager <Version>\games FIRST
+    user_home = os.path.expanduser("~")
+    for ver in ("27", "2027", "26", "2026", "2024", "24"):
+        cand = os.path.join(user_home, "Documents", "Sports Interactive", f"Football Manager {ver}", "games")
+        if os.path.exists(cand):
+            dirs.append(cand)
+
+    # 2. Local config (explicit saves_dir or archive fallback from tactics_dir)
     local_cfg = os.path.join(BASE_DIR, "config.local.json")
     if os.path.exists(local_cfg):
         try:
@@ -47,32 +55,20 @@ def get_candidate_save_dirs() -> List[str]:
                         for item in val:
                             if isinstance(item, str) and os.path.exists(item):
                                 dirs.append(item)
-                # Also derive games dir from tactics_dir if present
+                # Secondary archive fallback if user also keeps older saves next to tactics_dir
                 tac_dir = cfg.get("tactics_dir")
                 if isinstance(tac_dir, str) and os.path.exists(tac_dir):
                     parent_fm = os.path.dirname(tac_dir.rstrip("\\/"))
                     sibling_games = os.path.join(parent_fm, "games")
                     if os.path.exists(sibling_games):
                         dirs.append(sibling_games)
-                    grandparent_fm = os.path.dirname(parent_fm)
-                    for ver in ("Football Manager 27", "Football Manager 26", "Football Manager 2024"):
-                        cand = os.path.join(grandparent_fm, ver, "games")
-                        if os.path.exists(cand):
-                            dirs.append(cand)
         except OSError as exc:
             sys.stderr.write(f"[Scout Config Warning] {exc}\n")
-
-    user_home = os.path.expanduser("~")
-    for ver in ("27", "2027", "26", "2026", "2024", "24"):
-        cand = os.path.join(user_home, "Documents", "Sports Interactive", f"Football Manager {ver}", "games")
-        if os.path.exists(cand):
-            dirs.append(cand)
 
     uploads_dir = os.path.join(BASE_DIR, "uploads")
     if os.path.exists(uploads_dir):
         dirs.append(uploads_dir)
 
-    # Deduplicate preserving order
     unique_dirs: List[str] = []
     seen = set()
     for d in dirs:
@@ -312,6 +308,7 @@ class UniversalScoutEngine:
                             size_mb = round(stat.st_size / (1024 * 1024), 2)
                             mtime = stat.st_mtime
                             lower_full = full_path.lower()
+                            is_official_docs = "sports interactive" in lower_full
                             is_fm27 = "27" in lower_full or "2027" in lower_full
                             is_fm26 = "26" in lower_full or "2026" in lower_full
                             is_backup = "backup" in f.lower()
@@ -323,12 +320,14 @@ class UniversalScoutEngine:
                                 game_guess = "FM 24"
                             else:
                                 game_guess = "FM 26/27"
+                            source_label = "Sports Interactive" if is_official_docs else "Arşiv"
                             saves.append({
                                 "id": len(saves),
                                 "filename": f,
                                 "size_mb": size_mb,
                                 "modified_timestamp": mtime,
-                                "version_guess": game_guess,
+                                "version_guess": f"{game_guess} • {source_label}",
+                                "is_official_docs": is_official_docs,
                                 "is_modern": is_fm27 or is_fm26,
                                 "is_backup": is_backup,
                                 "_internal_path": full_path
@@ -338,7 +337,7 @@ class UniversalScoutEngine:
                             sys.stderr.write(f"[Scout Stat Warning] {exc}\n")
                             continue
 
-        saves.sort(key=lambda s: (s["is_modern"], not s["is_backup"], s["modified_timestamp"]), reverse=True)
+        saves.sort(key=lambda s: (s["is_official_docs"], s["is_modern"], not s["is_backup"], s["modified_timestamp"]), reverse=True)
         for idx, s in enumerate(saves):
             s["id"] = idx
         return saves

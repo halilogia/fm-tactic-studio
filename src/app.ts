@@ -116,6 +116,8 @@ function renderTacticsList(list: any[]): void {
   container.innerHTML = list.map((t) => {
     const isSelected = currentTactic && currentTactic.file_name === t.file_name;
     const tacSize = t.tac_info ? `${(t.tac_info.size / 1024).toFixed(1)} KB` : "";
+    const formBadge = t.saved_formation || t.detected_formation || "4-2-3-1";
+    const mentBadge = t.saved_mentality || t.detected_mentality || "Pozitif";
     return `
       <div onclick="selectTacticByName('${t.file_name}')" class="py-1.5 px-2 rounded-lg border cursor-pointer transition flex items-center justify-between ${
         isSelected
@@ -127,9 +129,12 @@ function renderTacticsList(list: any[]): void {
             <i class="fa-solid fa-shield-halved"></i>
           </div>
           <div class="min-w-0">
-            <h4 class="font-bold text-xs ${isSelected ? "text-cyan-300" : "text-slate-200"} truncate">${t.file_name}</h4>
+            <div class="flex items-center gap-1.5">
+              <h4 class="font-bold text-xs ${isSelected ? "text-cyan-300" : "text-slate-200"} truncate">${t.file_name}</h4>
+              <span class="text-[9px] bg-indigo-900/80 text-cyan-300 px-1.5 py-0.2 rounded font-mono font-semibold">${formBadge}</span>
+            </div>
             <p class="text-[9px] text-slate-400 flex items-center gap-1 mt-0.5">
-              <span>${t.file_size_formatted}</span>
+              <span class="text-emerald-400/90 font-medium">${mentBadge}</span>
               <span>•</span>
               <span>${t.modified_at}</span>
             </p>
@@ -183,8 +188,49 @@ function selectTactic(t: any): void {
 
   renderTacticsList(tactics);
   renderPitch();
+  renderTacticInstructions(t);
   renderFmfData(t);
   selectPlayer(0);
+}
+
+function renderTacticInstructions(t: any): void {
+  const inst = t.detected_instructions;
+  if (!inst) return;
+  const tabEl = document.getElementById("tacticsTab");
+  if (!tabEl) return;
+
+  const inPoss = inst.in_possession || {};
+  const trans = inst.transition || {};
+  const outPoss = inst.out_of_possession || {};
+
+  tabEl.innerHTML = `
+    <div class="bg-fmCard p-3 rounded-xl border border-indigo-950/80 space-y-2">
+      <h4 class="font-semibold text-cyan-400 flex items-center gap-1.5"><i class="fa-solid fa-arrows-split-up-and-left"></i> Topa Sahipken (${t.file_name})</h4>
+      <div class="space-y-1.5 text-slate-300">
+        <div class="flex justify-between"><span>Hücum Genişliği:</span><span class="text-indigo-300 font-medium">${inPoss.width || "Standart"}</span></div>
+        <div class="flex justify-between"><span>Paslaşma Biçimi:</span><span class="text-indigo-300 font-medium">${inPoss.passing || "Kısa Pas"}</span></div>
+        <div class="flex justify-between"><span>Tempo:</span><span class="text-indigo-300 font-medium">${inPoss.tempo || "Yüksek Tempo"}</span></div>
+        <div class="flex justify-between"><span>Defanstan Çıkış:</span><span class="text-emerald-400 font-medium">${inPoss.play_out || "Kısa Pasla Çık"}</span></div>
+      </div>
+    </div>
+    <div class="bg-fmCard p-3 rounded-xl border border-indigo-950/80 space-y-2">
+      <h4 class="font-semibold text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-repeat"></i> Geçiş Evresi</h4>
+      <div class="space-y-1.5 text-slate-300">
+        <div class="flex justify-between"><span>Top Kaybedilince:</span><span class="text-amber-300 font-medium">${trans.lose_ball || "Karşı Pres Yap"}</span></div>
+        <div class="flex justify-between"><span>Top Kazanılınca:</span><span class="text-amber-300 font-medium">${trans.win_ball || "Kontraya Kalk"}</span></div>
+        <div class="flex justify-between"><span>Kaleci Dağıtımı:</span><span class="text-indigo-300 font-medium">${trans.gk_dist || "Beklere / Stopere"}</span></div>
+      </div>
+    </div>
+    <div class="bg-fmCard p-3 rounded-xl border border-indigo-950/80 space-y-2">
+      <h4 class="font-semibold text-rose-400 flex items-center gap-1.5"><i class="fa-solid fa-shield-halved"></i> Top Rakipteyken</h4>
+      <div class="space-y-1.5 text-slate-300">
+        <div class="flex justify-between"><span>Savunma Hattı:</span><span class="text-rose-300 font-medium">${outPoss.def_line || "Daha İleride"}</span></div>
+        <div class="flex justify-between"><span>Pres Hattı:</span><span class="text-rose-300 font-medium">${outPoss.loa || "Önde Karşıla"}</span></div>
+        <div class="flex justify-between"><span>Pres Şiddeti:</span><span class="text-rose-300 font-medium">${outPoss.pressing || "Çok Sık Pres"}</span></div>
+        <div class="flex justify-between"><span>Ofsayt Taktiği:</span><span class="text-emerald-400 font-medium">${outPoss.offside || "Aktif"}</span></div>
+      </div>
+    </div>
+  `;
 }
 
 function updateMentality(m: string): void {

@@ -55,6 +55,14 @@ def get_default_tactics_dir() -> str:
     if env_dir and os.path.exists(env_dir):
         return env_dir
 
+    # 1. Official Documents\Sports Interactive\Football Manager <Version>\tactics FIRST (if it contains .fmf files)
+    user_home = os.path.expanduser("~")
+    for year in ["27", "2027", "26", "2026", "2024", "2023", "2022"]:
+        candidate = os.path.join(user_home, "Documents", "Sports Interactive", f"Football Manager {year}", "tactics")
+        if os.path.exists(candidate) and glob.glob(os.path.join(candidate, "*.fmf")):
+            return candidate
+
+    # 2. Local config (e.g. archive tactics folder)
     local_cfg = os.path.join(BASE_DIR, "config.local.json")
     if os.path.exists(local_cfg):
         try:
@@ -65,8 +73,8 @@ def get_default_tactics_dir() -> str:
         except OSError as exc:
             sys.stderr.write(f"[Config Read Warning] {exc}\n")
 
-    user_home = os.path.expanduser("~")
-    for year in ["27", "26", "2024", "2023", "2022"]:
+    # 3. Any existing Sports Interactive tactics folder even if empty
+    for year in ["27", "2027", "26", "2026", "2024"]:
         candidate = os.path.join(user_home, "Documents", "Sports Interactive", f"Football Manager {year}", "tactics")
         if os.path.exists(candidate):
             return candidate
@@ -110,15 +118,17 @@ def get_tactics(folder: Optional[str] = None):
         try:
             parsed = parse_fmf_file(fpath)
             fname = parsed["file_name"]
+            default_form = parsed.get("detected_formation", "4-2-3-1")
+            default_ment = parsed.get("detected_mentality", "Pozitif Futbol")
             if fname in custom_data:
                 parsed["saved_notes"] = custom_data[fname].get("notes", "")
-                parsed["saved_formation"] = custom_data[fname].get("formation", "4-2-3-1")
-                parsed["saved_mentality"] = custom_data[fname].get("mentality", "Pozitif Futbol")
+                parsed["saved_formation"] = custom_data[fname].get("formation", default_form)
+                parsed["saved_mentality"] = custom_data[fname].get("mentality", default_ment)
                 parsed["saved_players"] = custom_data[fname].get("players", None)
             else:
                 parsed["saved_notes"] = ""
-                parsed["saved_formation"] = "4-2-3-1"
-                parsed["saved_mentality"] = "Pozitif Futbol"
+                parsed["saved_formation"] = default_form
+                parsed["saved_mentality"] = default_ment
                 parsed["saved_players"] = None
             results.append(parsed)
         except Exception as e:
