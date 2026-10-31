@@ -30,3 +30,7 @@ Football Manager 2026 ve önceki sürümler için geliştirilmiş, oyuna girmede
    - Her taktik için özel notlar ekleyebilir ve tek tıkla kaydedebilirsiniz.
 6. **Sortitoutsi Entegrasyonu:**
    - Taktik dosyasını tek tıkla topluluk motorunda açma kısayolu.
+7. **FM 26 / FM 27 Sabit Slotlu Saha & Oyuncu Takası (Swap):**
+   - Serbest piksel kaydırma yerine FM 26/27'nin 24 sabit taktiksel slotu (`GK`, `DL..DR`, `WBL..WBR`, `DMCL..DMCR`, `ML..MR`, `AML..AMR`, `STCL..STCR`) üzerinde sürükle-bırak ile oyuncu yer değiştirme (swap) ve boş mevkilere taşıma.
+8. **Entegre Universal Scout (Excel Tablosu & Gizli Özellikler):**
+   - Üst bardaki **Scout (FM 26/27)** sekmesinden `.fm` kayıt dosyalarını (`Football Manager 26\games` / `27\games` veya manuel dosya seçimi) doğrudan yükleme, Excel tarzı sütun altı filtrelerle 46.000+ oyuncuyu CA/PA, Tutarlılık, Önemli Maçlar, Sakatlık Eğilimi, Hırs ve Profesyonellik kriterlerine göre milisaniyeler içinde süzme ve Excel/CSV olarak dışa aktarma.

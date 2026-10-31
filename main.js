@@ -1,3 +1,4 @@
+// @ts-mandatory: Electron CommonJS main process entrypoint invoked directly by electron binary
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -105,7 +106,9 @@ app.on('will-quit', () => {
   if (pyProcess) {
     try {
       pyProcess.kill();
-    } catch (e) {}
+    } catch (e) {
+      console.error('Failed to kill backend process:', e);
+    }
   }
 });
 

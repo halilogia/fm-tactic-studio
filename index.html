@@ -3,74 +3,60 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FM Tactic Studio - Football Manager Taktik Görüntüleyici</title>
+  <title>FM Tactic Studio & Universal Scout (FM 26 / FM 27)</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome Icons -->
+  <script src="/dist/tailwind_theme.js?v=2.0.0"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <!-- Custom Styles -->
-  <link rel="stylesheet" href="/css/styles.css?v=1.1.0">
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            fmDark: '#0b091a',
-            fmSidebar: '#13102a',
-            fmCard: '#1a1638',
-            fmAccent: '#6366f1',
-            fmCyan: '#06b6d4',
-            fmEmerald: '#10b981',
-            fmPitchGreen: '#1b6329',
-            fmPitchDark: '#144d1f'
-          }
-        }
-      }
-    }
-  </script>
+  <link rel="stylesheet" href="/css/styles.css?v=2.0.0">
 </head>
 <body class="bg-fmDark text-slate-100 font-sans h-screen w-screen flex flex-col overflow-hidden">
 
-  <!-- TOP NAVBAR -->
+  <!-- TOP NAVBAR WITH WORKSPACE SWITCHER (TAKTIK | SCOUT) -->
   <header class="bg-fmSidebar border-b border-indigo-950/60 px-4 py-2 flex items-center justify-between shrink-0 shadow-md">
-    <div class="flex items-center gap-2.5">
+    <div class="flex items-center gap-3">
       <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-white text-base shadow-md shadow-indigo-600/30">
         <i class="fa-solid fa-futbol"></i>
       </div>
       <div>
         <div class="flex items-center gap-2">
           <h1 class="font-bold text-base tracking-wide text-white">FM Tactic Studio</h1>
-          <span class="bg-indigo-900/60 text-indigo-300 text-[10px] px-2 py-0.2 rounded-full font-medium border border-indigo-700/50">FM 2026 Ready</span>
-          <span class="bg-emerald-950/60 text-emerald-400 text-[10px] px-2 py-0.2 rounded-full font-medium border border-emerald-700/50">Electron Desktop</span>
+          <span class="bg-indigo-900/60 text-indigo-300 text-[10px] px-2 py-0.2 rounded-full font-medium border border-indigo-700/50">FM 26 & 27 Ready</span>
+          <span class="bg-emerald-950/60 text-emerald-400 text-[10px] px-2 py-0.2 rounded-full font-medium border border-emerald-700/50">TypeScript Desktop</span>
         </div>
         <p class="text-[11px] text-slate-400 flex items-center gap-1.5">
           <i class="fa-regular fa-folder-open text-indigo-400"></i>
-          <span id="folderLabel" class="truncate max-w-xs md:max-w-md text-slate-400 font-medium">Football Manager 26 \ tactics</span>
+          <span id="folderLabel" class="truncate max-w-xs md:max-w-md text-slate-400 font-medium">Football Manager 26/27 \ tactics</span>
         </p>
       </div>
     </div>
 
-    <!-- Actions -->
-    <div class="flex items-center gap-2.5">
+    <!-- Center Top-Level Tabs: TAKTIK & SCOUT -->
+    <div class="flex items-center bg-fmDark/90 p-1 rounded-xl border border-indigo-900/70 gap-1 shadow-inner">
+      <button id="navBtn-tactic" onclick="switchMainWorkspace('tactic')" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md transition flex items-center gap-1.5">
+        <i class="fa-solid fa-chess-board"></i> Taktik
+      </button>
+      <button id="navBtn-scout" onclick="switchMainWorkspace('scout')" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-indigo-950/60 transition flex items-center gap-1.5">
+        <i class="fa-solid fa-binoculars text-cyan-400"></i> Scout (FM 26/27)
+      </button>
+    </div>
+
+    <!-- Right Actions -->
+    <div class="flex items-center gap-2">
       <button onclick="refreshTactics()" class="px-3 py-1 bg-indigo-950/80 hover:bg-indigo-900 text-indigo-200 border border-indigo-800/60 rounded-lg text-xs font-medium flex items-center gap-1.5 transition">
         <i class="fa-solid fa-rotate text-indigo-400" id="refreshIcon"></i> Yenile
       </button>
-
       <a href="https://sortitoutsi.net/tactics/editor" target="_blank" rel="noopener noreferrer" class="px-3 py-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md transition">
-        <i class="fa-solid fa-arrow-up-right-from-square"></i> Sortitoutsi'de Aç
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> Sortitoutsi
       </a>
-
       <button onclick="exportPitchPNG()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md transition">
         <i class="fa-solid fa-camera"></i> Sahayı İndir
       </button>
     </div>
   </header>
 
-  <!-- MAIN CONTAINER (3 Columns) -->
-  <div class="flex-1 flex overflow-hidden min-h-0">
-    
+  <!-- ==================== WORKSPACE 1: TAKTIK EKRANI ==================== -->
+  <div id="workspace-tactic" class="flex-1 flex overflow-hidden min-h-0">
     <!-- LEFT COLUMN: Tactics Library -->
     <aside class="w-80 bg-fmSidebar border-r border-indigo-950/60 flex flex-col shrink-0 min-h-0 h-full">
       <div class="p-3 border-b border-indigo-950/60 flex items-center justify-between shrink-0">
@@ -85,7 +71,6 @@
         <input type="file" id="uploadInput" accept=".fmf" class="hidden" onchange="handleFileUpload(event)">
       </div>
 
-      <!-- Search input -->
       <div class="p-2.5 border-b border-indigo-950/40 shrink-0">
         <div class="relative">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-500"></i>
@@ -93,7 +78,6 @@
         </div>
       </div>
 
-      <!-- Tactics List -->
       <div id="tacticsList" class="flex-1 min-h-0 overflow-y-auto p-2 space-y-1.5">
         <div class="text-center py-10 text-slate-500 text-xs">
           <i class="fa-solid fa-spinner fa-spin text-lg text-indigo-400 mb-2"></i>
@@ -101,7 +85,6 @@
         </div>
       </div>
 
-      <!-- Drag & Drop Zone footer -->
       <div id="dropZone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" class="m-2 p-2 border border-dashed border-indigo-900/60 hover:border-cyan-500/80 rounded-xl bg-fmDark/40 text-center transition cursor-pointer shrink-0">
         <div class="flex items-center justify-center gap-2 text-indigo-400 text-xs font-medium">
           <i class="fa-solid fa-cloud-arrow-up"></i>
@@ -110,10 +93,8 @@
       </div>
     </aside>
 
-    <!-- MIDDLE COLUMN: Tactical Pitch -->
+    <!-- MIDDLE COLUMN: Fixed-Slot Tactical Pitch -->
     <main class="flex-1 bg-fmDark flex flex-col items-center justify-between p-2 min-h-0 relative overflow-hidden">
-      
-      <!-- Top controls bar -->
       <div class="w-full max-w-lg flex items-center justify-between bg-fmCard/80 backdrop-blur border border-indigo-950/80 px-3.5 py-1.5 rounded-xl shadow-md shrink-0">
         <div class="flex items-center gap-2.5">
           <div class="flex items-center gap-1.5">
@@ -147,43 +128,32 @@
         </div>
       </div>
 
-      <!-- Football Pitch Canvas -->
-      <div id="pitchWrapper" style="height: calc(100vh - 145px); max-height: 480px; min-height: 320px;" class="relative w-full max-w-md md:max-w-lg football-pitch rounded-2xl overflow-hidden shadow-2xl border-4 border-emerald-950/80 shrink-0">
-        <!-- Field markings -->
+      <!-- Football Pitch Canvas (24 Fixed Canonical Slots + 11 Players) -->
+      <div id="pitchWrapper" class="relative w-full max-w-md md:max-w-lg football-pitch rounded-2xl overflow-hidden shadow-2xl border-4 border-emerald-950/80 shrink-0">
         <div class="pitch-line border-t-2 w-full top-1/2 -translate-y-1/2"></div>
         <div class="pitch-line border-2 rounded-full w-24 h-24 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
         <div class="pitch-line w-2 h-2 bg-white/70 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
-
-        <!-- Top Penalty Box -->
         <div class="pitch-line border-2 border-t-0 w-56 h-24 top-0 left-1/2 -translate-x-1/2"></div>
         <div class="pitch-line border-2 border-t-0 w-24 h-8 top-0 left-1/2 -translate-x-1/2"></div>
         <div class="pitch-line border-2 rounded-full w-20 h-8 top-24 left-1/2 -translate-x-1/2 border-t-0"></div>
-
-        <!-- Bottom Penalty Box -->
         <div class="pitch-line border-2 border-b-0 w-56 h-24 bottom-0 left-1/2 -translate-x-1/2"></div>
         <div class="pitch-line border-2 border-b-0 w-24 h-8 bottom-0 left-1/2 -translate-x-1/2"></div>
         <div class="pitch-line border-2 rounded-full w-20 h-8 bottom-24 left-1/2 -translate-x-1/2 border-b-0"></div>
-
-        <!-- Corner arcs -->
         <div class="pitch-line border-2 border-l-0 border-t-0 rounded-br-full w-4 h-4 top-0 left-0"></div>
         <div class="pitch-line border-2 border-r-0 border-t-0 rounded-bl-full w-4 h-4 top-0 right-0"></div>
         <div class="pitch-line border-2 border-l-0 border-b-0 rounded-tr-full w-4 h-4 bottom-0 left-0"></div>
         <div class="pitch-line border-2 border-r-0 border-b-0 rounded-tl-full w-4 h-4 bottom-0 right-0"></div>
-
-        <!-- 11 Player Tokens Layer -->
         <div id="playersContainer" class="absolute inset-0"></div>
       </div>
 
-      <!-- Pitch footer helper text -->
       <div class="text-center text-[10px] text-slate-400 shrink-0 py-0.5">
-        <i class="fa-solid fa-arrows-up-down-left-right text-indigo-400 mr-1"></i>
-        <span>Oyuncuları serbestçe sürükleyebilirsiniz. Rol düzenlemek için oyuncuya tıklayın.</span>
+        <i class="fa-solid fa-arrows-rotate text-cyan-400 mr-1"></i>
+        <span>FM 26/27 Sabit Slot Sistemi: Oyuncuyu dolu slota bırakırsanız <b>yer değiştirir (swap)</b>, boş slota bırakırsanız o mevkiye geçer.</span>
       </div>
     </main>
 
     <!-- RIGHT COLUMN: Tactics Inspector & Details -->
     <aside class="w-96 bg-fmSidebar border-l border-indigo-950/60 flex flex-col shrink-0 min-h-0 h-full">
-      <!-- Tabs header -->
       <div class="p-2 border-b border-indigo-950/60 flex items-center justify-around text-xs font-semibold">
         <button onclick="switchTab('playerTab')" id="btn-playerTab" class="tab-btn px-3 py-1.5 rounded-lg text-cyan-400 bg-fmDark font-medium transition">
           <i class="fa-solid fa-user mr-1"></i> Oyuncu
@@ -196,13 +166,12 @@
         </button>
       </div>
 
-      <!-- Tab 1: Selected Player Editor -->
       <div id="playerTab" class="tab-content flex-1 min-h-0 p-4 overflow-y-auto space-y-4">
         <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950/80 shadow-md">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2">
               <span id="playerShirtNum" class="w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold flex items-center justify-center text-xs">10</span>
-              <h3 id="playerPosTitle" class="font-bold text-sm text-slate-100">OOS (Merkez)</h3>
+              <h3 id="playerPosTitle" class="font-bold text-sm text-slate-100">AMC - On Numara</h3>
             </div>
             <span id="playerDutyBadge" class="bg-cyan-950 text-cyan-300 border border-cyan-800 text-[11px] px-2 py-0.5 rounded font-mono">Hücum</span>
           </div>
@@ -228,12 +197,11 @@
           </div>
 
           <div class="pt-2 border-t border-indigo-950/60 flex items-center justify-between text-[11px] text-slate-400">
-            <span>Saha Konumu:</span>
-            <span id="playerCoordsLabel" class="font-mono text-cyan-400">X: 50% | Y: 34%</span>
+            <span>Sabit Saha Slotu:</span>
+            <span id="playerCoordsLabel" class="font-mono text-cyan-400">Slot: AMC</span>
           </div>
         </div>
 
-        <!-- Notes Card -->
         <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950/80 shadow-md">
           <h4 class="text-xs font-semibold text-slate-200 mb-2 flex items-center gap-1.5">
             <i class="fa-regular fa-note-sticky text-amber-400"></i> Bu Taktik İçin Notlarım
@@ -245,66 +213,159 @@
         </div>
       </div>
 
-      <!-- Tab 2: Tactics Instructions -->
       <div id="tacticsTab" class="tab-content hidden flex-1 min-h-0 p-4 overflow-y-auto space-y-3.5 text-xs">
         <div class="bg-fmCard p-3 rounded-xl border border-indigo-950/80 space-y-2">
-          <h4 class="font-semibold text-cyan-400 flex items-center gap-1.5">
-            <i class="fa-solid fa-arrows-split-up-and-left"></i> Topa Sahipken
-          </h4>
+          <h4 class="font-semibold text-cyan-400 flex items-center gap-1.5"><i class="fa-solid fa-arrows-split-up-and-left"></i> Topa Sahipken</h4>
           <div class="space-y-1.5 text-slate-300">
-            <div class="flex justify-between items-center"><span>Hücum Genişliği:</span><span class="text-indigo-300 font-medium">Oldukça Geniş</span></div>
-            <div class="flex justify-between items-center"><span>Paslaşma Biçimi:</span><span class="text-indigo-300 font-medium">Kısa Pas</span></div>
-            <div class="flex justify-between items-center"><span>Tempo:</span><span class="text-indigo-300 font-medium">Yüksek Tempo</span></div>
-            <div class="flex justify-between items-center"><span>Defanstan Çıkış:</span><span class="text-emerald-400 font-medium">Kısa Pasla Çık</span></div>
+            <div class="flex justify-between"><span>Hücum Genişliği:</span><span class="text-indigo-300 font-medium">Oldukça Geniş</span></div>
+            <div class="flex justify-between"><span>Paslaşma Biçimi:</span><span class="text-indigo-300 font-medium">Kısa Pas</span></div>
+            <div class="flex justify-between"><span>Tempo:</span><span class="text-indigo-300 font-medium">Yüksek Tempo</span></div>
           </div>
         </div>
-
         <div class="bg-fmCard p-3 rounded-xl border border-indigo-950/80 space-y-2">
-          <h4 class="font-semibold text-amber-400 flex items-center gap-1.5">
-            <i class="fa-solid fa-repeat"></i> Geçiş Evresi
-          </h4>
+          <h4 class="font-semibold text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-repeat"></i> Geçiş Evresi</h4>
           <div class="space-y-1.5 text-slate-300">
-            <div class="flex justify-between items-center"><span>Top Kaybedilince:</span><span class="text-amber-300 font-medium">Karşı Pres Yap</span></div>
-            <div class="flex justify-between items-center"><span>Top Kazanılınca:</span><span class="text-amber-300 font-medium">Kontraya Kalk</span></div>
-            <div class="flex justify-between items-center"><span>Kaleci Dağıtımı:</span><span class="text-indigo-300 font-medium">Beklere / Stopere</span></div>
+            <div class="flex justify-between"><span>Top Kaybedilince:</span><span class="text-amber-300 font-medium">Karşı Pres Yap</span></div>
+            <div class="flex justify-between"><span>Top Kazanılınca:</span><span class="text-amber-300 font-medium">Kontraya Kalk</span></div>
           </div>
         </div>
-
         <div class="bg-fmCard p-3 rounded-xl border border-indigo-950/80 space-y-2">
-          <h4 class="font-semibold text-rose-400 flex items-center gap-1.5">
-            <i class="fa-solid fa-shield-halved"></i> Top Rakipteyken
-          </h4>
+          <h4 class="font-semibold text-rose-400 flex items-center gap-1.5"><i class="fa-solid fa-shield-halved"></i> Top Rakipteyken</h4>
           <div class="space-y-1.5 text-slate-300">
-            <div class="flex justify-between items-center"><span>Savunma Hattı:</span><span class="text-rose-300 font-medium">Daha İleride</span></div>
-            <div class="flex justify-between items-center"><span>Pres Hattı:</span><span class="text-rose-300 font-medium">Önde Karşıla</span></div>
-            <div class="flex justify-between items-center"><span>Pres Şiddeti:</span><span class="text-rose-300 font-medium">Çok Sık Pres</span></div>
-            <div class="flex justify-between items-center"><span>Ofsayt Taktiği:</span><span class="text-emerald-400 font-medium">Aktif</span></div>
+            <div class="flex justify-between"><span>Savunma Hattı:</span><span class="text-rose-300 font-medium">Daha İleride</span></div>
+            <div class="flex justify-between"><span>Pres Şiddeti:</span><span class="text-rose-300 font-medium">Çok Sık Pres</span></div>
           </div>
         </div>
       </div>
 
-      <!-- Tab 3: .FMF Binary / TOC Inspector -->
       <div id="fmfTab" class="tab-content hidden flex-1 min-h-0 p-4 overflow-y-auto space-y-3 text-xs">
         <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950/80 space-y-2.5">
-          <h4 class="font-semibold text-cyan-400 flex items-center gap-1.5 text-sm">
-            <i class="fa-solid fa-box-archive"></i> SI Arşiv Özeti
-          </h4>
+          <h4 class="font-semibold text-cyan-400 flex items-center gap-1.5 text-sm"><i class="fa-solid fa-box-archive"></i> SI Arşiv Özeti</h4>
           <div id="fmfMetaDetails" class="space-y-1.5 text-slate-300 font-mono text-[11px]"></div>
         </div>
-
         <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950/80 space-y-2">
-          <h4 class="font-semibold text-indigo-300 flex items-center gap-1.5 text-xs">
-            <i class="fa-solid fa-folder-tree"></i> İçerik Tablosu (TOC)
-          </h4>
+          <h4 class="font-semibold text-indigo-300 flex items-center gap-1.5 text-xs"><i class="fa-solid fa-folder-tree"></i> İçerik Tablosu (TOC)</h4>
           <div id="fmfTocList" class="space-y-2"></div>
         </div>
       </div>
     </aside>
   </div>
 
-  <!-- Scripts modularly imported -->
-  <script src="/js/formations.js?v=1.1.0"></script>
-  <script src="/js/pitch.js?v=1.1.0"></script>
-  <script src="/js/app.js?v=1.1.0"></script>
+  <!-- ==================== WORKSPACE 2: SCOUT (EXCEL DATA GRID) ==================== -->
+  <div id="workspace-scout" class="hidden flex-1 flex flex-col overflow-hidden min-h-0 bg-fmDark">
+    <!-- Top Save Loader & Excel Toolbar -->
+    <div class="bg-fmSidebar border-b border-indigo-950/80 px-4 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-xs font-bold text-cyan-400 flex items-center gap-1">
+          <i class="fa-solid fa-folder-tree"></i> FM 26/27 Save:
+        </span>
+        <select id="scoutSaveSelect" class="bg-fmDark border border-indigo-900 rounded-lg px-2.5 py-1 text-xs text-slate-200 max-w-xs focus:outline-none focus:border-cyan-400"></select>
+        <input type="text" id="scoutCustomPathInput" placeholder="veya .fm dosya yolu yapıştırın..." class="bg-fmDark border border-indigo-950 rounded-lg px-2.5 py-1 text-xs text-slate-300 w-48 focus:outline-none focus:border-cyan-400">
+        <button id="scoutLoadSaveBtn" onclick="loadSelectedSaveFile()" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition">
+          <i class="fa-solid fa-database mr-1"></i> Kaydı Yükle
+        </button>
+        <button onclick="document.getElementById('scoutUploadFmInput').click()" class="px-2.5 py-1 bg-fmCard hover:bg-indigo-900 border border-indigo-800 text-cyan-300 rounded-lg text-xs font-medium transition">
+          <i class="fa-solid fa-file-import mr-1"></i> .fm Dosyası Seç
+        </button>
+        <input type="file" id="scoutUploadFmInput" accept=".fm" class="hidden" onchange="handleSaveFileUpload(event)">
+        <span id="scoutSaveStatusBadge" class="bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 text-[11px] px-2.5 py-0.5 rounded-full font-mono">Hazır</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input type="text" id="scoutGlobalSearch" oninput="triggerScoutFilterDebounced()" placeholder="Hızlı genel arama (Ad, Kulüp, Ülke)..." class="bg-fmDark border border-indigo-900 rounded-lg px-3 py-1 text-xs text-white w-52 focus:outline-none focus:border-cyan-400">
+        <button id="btnWonderkidsToggle" onclick="toggleWonderkidsFilter()" class="px-3 py-1 rounded-lg text-xs font-semibold bg-fmDark text-amber-300 border border-amber-700/60 hover:bg-amber-950/50 transition">
+          <i class="fa-solid fa-star mr-1"></i> Wonderkids (≤21 & PA≥150)
+        </button>
+        <button onclick="resetScoutFilters()" class="px-2.5 py-1 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+          Sıfırla
+        </button>
+        <button onclick="exportScoutCsv()" class="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition">
+          <i class="fa-solid fa-file-excel mr-1"></i> Excel / CSV İndir
+        </button>
+      </div>
+    </div>
+
+    <!-- Excel Spreadsheet Grid Container -->
+    <div class="flex-1 min-h-0 overflow-auto">
+      <table class="excel-table w-full text-left border-collapse">
+        <thead>
+          <!-- Row 1: Sortable Column Headers -->
+          <tr class="text-[11px] font-bold text-slate-300 border-b border-indigo-900 select-none">
+            <th class="px-2 py-2 text-center w-10 border-r border-indigo-950/60">#</th>
+            <th data-sort-col="name" onclick="sortScoutColumn('name')" class="px-2.5 py-2 cursor-pointer hover:text-cyan-300 border-r border-indigo-950/60">Oyuncu Adı <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="age" onclick="sortScoutColumn('age')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-20 border-r border-indigo-950/60">Yaş <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th class="px-2 py-2 w-24 border-r border-indigo-950/60">Mevki</th>
+            <th data-sort-col="club_name" onclick="sortScoutColumn('club_name')" class="px-2.5 py-2 cursor-pointer hover:text-cyan-300 border-r border-indigo-950/60">Kulüp <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="nation_name" onclick="sortScoutColumn('nation_name')" class="px-2 py-2 cursor-pointer hover:text-cyan-300 border-r border-indigo-950/60">Ülke <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="ca" onclick="sortScoutColumn('ca')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60">CA <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="pa" onclick="sortScoutColumn('pa')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60">PA <span class="sort-indicator text-cyan-400 font-bold">▼</span></th>
+            <th data-sort-col="potential_gap" onclick="sortScoutColumn('potential_gap')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-14 border-r border-indigo-950/60">Fark <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="consistency" onclick="sortScoutColumn('consistency')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60" title="Tutarlılık (Consistency)">Tutar. <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="important_matches" onclick="sortScoutColumn('important_matches')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60" title="Önemli Maçlar">Ö.Maç <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="injury_proneness" onclick="sortScoutColumn('injury_proneness')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60" title="Sakatlık Eğilimi (Düşük İyi)">Sakat. <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="versatility" onclick="sortScoutColumn('versatility')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60" title="Çok Yönlülük">ÇokYön <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="ambition" onclick="sortScoutColumn('ambition')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60" title="Hırs (Ambition)">Hırs <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="professionalism" onclick="sortScoutColumn('professionalism')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60" title="Profesyonellik">Prof. <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="pressure" onclick="sortScoutColumn('pressure')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16" title="Baskıya Dayanıklılık">Baskı <span class="sort-indicator text-slate-600">⇅</span></th>
+          </tr>
+          <!-- Row 2: Inline Excel Column Filters -->
+          <tr class="filter-row border-b border-indigo-900/90">
+            <th class="px-1 py-1 text-center text-[9px] text-slate-500 border-r border-indigo-950/50">Filtre</th>
+            <th class="px-1.5 py-1 border-r border-indigo-950/50"><input id="colFilterName" oninput="triggerScoutFilterDebounced()" placeholder="İsim filtrele..." class="excel-input"></th>
+            <th class="px-1 py-1 border-r border-indigo-950/50">
+              <div class="flex gap-0.5">
+                <input id="colFilterMinAge" oninput="triggerScoutFilterDebounced()" placeholder="Min" class="excel-input text-center">
+                <input id="colFilterMaxAge" oninput="triggerScoutFilterDebounced()" placeholder="Max" class="excel-input text-center">
+              </div>
+            </th>
+            <th class="px-1 py-1 border-r border-indigo-950/50"><input id="colFilterPos" oninput="triggerScoutFilterDebounced()" placeholder="GK,DC,ST" class="excel-input"></th>
+            <th class="px-1.5 py-1 border-r border-indigo-950/50"><input id="colFilterClub" oninput="triggerScoutFilterDebounced()" placeholder="Kulüp..." class="excel-input"></th>
+            <th class="px-1.5 py-1 border-r border-indigo-950/50"><input id="colFilterNation" oninput="triggerScoutFilterDebounced()" placeholder="Ülke..." class="excel-input"></th>
+            <th class="px-1 py-1 border-r border-indigo-950/50"><input id="colFilterMinCA" oninput="triggerScoutFilterDebounced()" placeholder="≥CA" class="excel-input text-center"></th>
+            <th class="px-1 py-1 border-r border-indigo-950/50"><input id="colFilterMinPA" oninput="triggerScoutFilterDebounced()" placeholder="≥PA" class="excel-input text-center"></th>
+            <th class="px-1 py-1 border-r border-indigo-950/50 text-center text-[9px] text-slate-600">PA-CA</th>
+            <th class="px-1 py-1 border-r border-indigo-950/50"><input id="colFilterMinCons" oninput="triggerScoutFilterDebounced()" placeholder="≥1-20" class="excel-input text-center"></th>
+            <th class="px-1 py-1 border-r border-indigo-950/50"><input id="colFilterMinImp" oninput="triggerScoutFilterDebounced()" placeholder="≥1-20" class="excel-input text-center"></th>
+            <th class="px-1 py-1 border-r border-indigo-950/50"><input id="colFilterMaxInj" oninput="triggerScoutFilterDebounced()" placeholder="≤Max" class="excel-input text-center"></th>
+            <th class="px-1 py-1 border-r border-indigo-950/50"><input id="colFilterMinVers" oninput="triggerScoutFilterDebounced()" placeholder="≥1-20" class="excel-input text-center"></th>
+            <th class="px-1 py-1 border-r border-indigo-950/50"><input id="colFilterMinAmb" oninput="triggerScoutFilterDebounced()" placeholder="≥1-20" class="excel-input text-center"></th>
+            <th class="px-1 py-1 border-r border-indigo-950/50"><input id="colFilterMinProf" oninput="triggerScoutFilterDebounced()" placeholder="≥1-20" class="excel-input text-center"></th>
+            <th class="px-1 py-1"><input id="colFilterMinPres" oninput="triggerScoutFilterDebounced()" placeholder="≥1-20" class="excel-input text-center"></th>
+          </tr>
+        </thead>
+        <tbody id="scoutExcelTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Bottom Excel Status & Pagination Bar -->
+    <div class="bg-fmSidebar border-t border-indigo-950/80 px-4 py-1.5 flex items-center justify-between text-xs shrink-0">
+      <div class="flex items-center gap-3 text-slate-400">
+        <span>Toplam Eşleşen: <b id="scoutResultCountLabel" class="text-cyan-300 font-mono">0 kayıt</b></span>
+        <span>•</span>
+        <span class="text-[11px]">Detaylı gizli özellik kartı ve taktiğe atamak için satıra tıklayın.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="scoutPrevPage()" class="px-2.5 py-0.5 bg-fmCard hover:bg-indigo-900 border border-indigo-900 rounded text-slate-200">Önceki 100</button>
+        <span id="scoutPaginationLabel" class="font-mono text-slate-300 text-[11px]">0-0 / 0</span>
+        <button onclick="scoutNextPage()" class="px-2.5 py-0.5 bg-fmCard hover:bg-indigo-900 border border-indigo-900 rounded text-slate-200">Sonraki 100</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Player Hidden Attributes Detail Modal -->
+  <div id="scoutPlayerModal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-fmCard border border-indigo-800 rounded-2xl max-w-2xl w-full p-5 shadow-2xl relative">
+      <button onclick="closeScoutPlayerModal()" class="absolute top-3 right-3 w-7 h-7 rounded-lg bg-fmDark hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div id="scoutPlayerModalContent"></div>
+    </div>
+  </div>
+
+  <!-- Compiled TypeScript Bundles -->
+  <script src="/dist/formations.js?v=2.0.0"></script>
+  <script src="/dist/pitch.js?v=2.0.0"></script>
+  <script src="/dist/scout.js?v=2.0.0"></script>
+  <script src="/dist/app.js?v=2.0.0"></script>
 </body>
 </html>

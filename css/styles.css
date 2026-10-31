@@ -1,4 +1,4 @@
-/* FM Tactic Studio - Custom Pitch & Component Styles */
+/* FM Tactic Studio & Universal Scout - Custom Pitch, Excel Grid & Component Styles */
 
 html, body {
   height: 100%;
@@ -9,6 +9,9 @@ html, body {
 }
 
 .football-pitch {
+  height: calc(100vh - 145px);
+  max-height: 480px;
+  min-height: 320px;
   background: repeating-linear-gradient(
     0deg,
     #1d6b2c,
@@ -40,6 +43,40 @@ html, body {
 .player-token.selected {
   transform: scale(1.12);
   box-shadow: 0 0 15px #06b6d4, 0 0 30px #6366f1;
+}
+
+/* Excel Data Grid Styles */
+.excel-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.excel-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #13102a;
+}
+
+.excel-table thead tr.filter-row th {
+  top: 31px;
+  z-index: 20;
+  background: #161233;
+}
+
+.excel-input {
+  width: 100%;
+  background: #0b091a;
+  border: 1px solid #2e265e;
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 10px;
+  color: #e2e8f0;
+  outline: none;
+}
+
+.excel-input:focus {
+  border-color: #06b6d4;
 }
 
 /* Custom Scrollbar */

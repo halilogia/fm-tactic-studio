@@ -23,15 +23,18 @@ FM Tactic Studio is a standalone desktop and local-web platform engineered to in
              └── *.fmf (AFE Container Archives)
 ```
 
-### 1. Presentation Layer (`presentation/`)
-- `index.html`: Clean, accessible HTML5 layout skeleton (~230 lines).
-- `css/styles.css`: Pure stylesheet handling pitch markings, grass textures, responsive player badges, and custom scrollbars.
-- `js/formations.js`: Preset database for modern FM tactical shapes (4-2-3-1, 4-3-3, 4-4-2, 5-2-3, etc.) and role-to-duty mappings.
-- `js/pitch.js`: 2D interactive canvas/coordinate drag-and-drop controller.
-- `js/app.js`: Main state orchestrator, auto-retrying HTTP client, and tab manager.
+### 1. Presentation Layer (`src/*.ts` -> `dist/*.js`)
+- `index.html`: Clean HTML5 layout skeleton with zero inline JS/CSS (<350 LOC), featuring top-level `Taktik` and `Scout` workspace tabs.
+- `css/styles.css`: Pure stylesheet handling pitch markings, grass textures, sticky Excel data-grid headers, and custom scrollbars.
+- `src/formations.ts`: Canonical 24 FM 26/27 fixed tactical slots (`FIXED_TACTICAL_SLOTS`), formations database, and role-to-duty mappings.
+- `src/pitch.ts`: Fixed-slot 2D tactical pitch controller supporting player swapping on occupied slots and snapping on empty slots.
+- `src/scout.ts`: Excel-style data grid controller with inline column filters, sorting, `.fm` save loader, player hidden-attribute modal, and CSV/Excel export.
+- `src/app.ts`: Main state orchestrator, workspace switcher, and `.fmf` tactics library manager.
+- `src/tailwind_theme.ts`: Externalized Tailwind theme configuration.
 
 ### 2. Service & Parsing Layer (`core/`)
-- `app.py`: FastAPI async HTTP server with CORS protection and local configuration management.
+- `app.py`: FastAPI async HTTP server serving both Tactic Studio and Universal Scout endpoints.
+- `scout_engine.py`: `fmsave` + in-memory SQLite engine indexing 46,000+ players per `.fm` save with <5ms query latency.
 - `fmf_parser.py`: Reverse-engineered Sports Interactive container parser:
   - Header inspection (`\x02\x01afe.` vs `\x02\x01fmf.`)
   - Locate table of contents (TOC) with Zstandard magic bytes (`0xFD2FB528`)

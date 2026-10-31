@@ -9,3 +9,6 @@
 - [x] Responsive layout and vertical scrolling fix.
 - [x] Dynamic folder discovery and privacy path isolation (`config.local.json`).
 - [x] Git repository initialization and pre-push documentation gate.
+- [x] TypeScript migration (`src/*.ts` -> `dist/*.js`) with full GravityGuard G7_TS_FIRST and Web SRP compliance.
+- [x] FM 26 / FM 27 Fixed-Slot (24 canonical slots) drag-and-drop tactical pitch with automatic player swap.
+- [x] Unified `Taktik` and `Scout` top-level tabs with `.fm` save loader and Excel-style inline filterable player database.
