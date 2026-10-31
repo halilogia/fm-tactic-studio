@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FM Tactic Studio - Football Manager Taktik Görüntüleyici</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            fmDark: '#0b091a',
+            fmSidebar: '#13102a',
+            fmCard: '#1a1638',
+            fmAccent: '#6366f1',
+            fmCyan: '#06b6d4',
+            fmEmerald: '#10b981',
+            fmPitchGreen: '#1b6329',
+            fmPitchDark: '#144d1f'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-fmDark text-slate-100 font-sans min-h-screen flex flex-col overflow-hidden">
+
+  <!-- TOP NAVBAR -->
+  <header class="bg-fmSidebar border-b border-indigo-950/60 px-5 py-3 flex items-center justify-between shrink-0 shadow-lg">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-white text-xl shadow-md shadow-indigo-600/30">
+        <i class="fa-solid fa-futbol"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-bold text-lg tracking-wide text-white">FM Tactic Studio</h1>
+          <span class="bg-indigo-900/60 text-indigo-300 text-xs px-2 py-0.5 rounded-full font-medium border border-indigo-700/50">FM 2026 Ready</span>
+          <span class="bg-emerald-950/60 text-emerald-400 text-xs px-2 py-0.5 rounded-full font-medium border border-emerald-700/50">Electron Desktop</span>
+        </div>
+        <p class="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+          <i class="fa-regular fa-folder-open text-indigo-400"></i>
+          <span id="folderLabel" class="truncate max-w-md text-slate-400">Taktik Klasörü Yükleniyor...</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-3">
+      <button onclick="refreshTactics()" class="px-3.5 py-1.5 bg-indigo-950/80 hover:bg-indigo-900 text-indigo-200 border border-indigo-800/60 rounded-lg text-xs font-medium flex items-center gap-2 transition">
+        <i class="fa-solid fa-rotate text-indigo-400" id="refreshIcon"></i> Yenile
+      </button>
+
+      <a href="https://sortitoutsi.net/tactics/editor" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg text-xs font-semibold flex items-center gap-2 shadow-md transition">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> Sortitoutsi'de Aç
+      </a>
+
+      <button onclick="exportPitchPNG()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-2 shadow-md transition">
+        <i class="fa-solid fa-camera"></i> Sahayı İndir
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER (3 Columns) -->
+  <div class="flex-1 flex overflow-hidden min-h-0">
+    
+    <!-- LEFT COLUMN: Tactics Library -->
+    <aside class="w-80 bg-fmSidebar border-r border-indigo-950/60 flex flex-col shrink-0 min-h-0 h-full">
+      <div class="p-3 border-b border-indigo-950/60 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-list-check text-cyan-400"></i>
+          <h2 class="font-semibold text-sm text-slate-200">Taktiklerim</h2>
+          <span id="tacticCountBadge" class="bg-indigo-900/60 text-indigo-300 text-xs px-2 py-0.2 rounded-full font-mono">0</span>
+        </div>
+        <button onclick="document.getElementById('uploadInput').click()" class="text-xs bg-indigo-600/80 hover:bg-indigo-600 px-2 py-1 rounded text-white font-medium flex items-center gap-1 transition">
+          <i class="fa-solid fa-plus"></i> Ekle
+        </button>
+        <input type="file" id="uploadInput" accept=".fmf" class="hidden" onchange="handleFileUpload(event)">
+      </div>
+
+      <!-- Search input -->
+      <div class="p-2.5 border-b border-indigo-950/40 shrink-0">
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-500"></i>
+          <input type="text" id="searchInput" placeholder="Taktik ara..." oninput="filterTactics()" class="w-full bg-fmDark/80 border border-indigo-950 focus:border-indigo-500 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition">
+        </div>
+      </div>
+
+      <!-- Tactics List -->
+      <div id="tacticsList" class="flex-1 min-h-0 overflow-y-auto p-2 space-y-1.5">
+        <div class="text-center py-10 text-slate-500 text-xs">
+          <i class="fa-solid fa-spinner fa-spin text-lg text-indigo-400 mb-2"></i>
+          <p>Taktik dosyaları taranıyor...</p>
+        </div>
+      </div>
+
+      <!-- Drag & Drop Zone footer -->
+      <div id="dropZone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" class="m-2 p-2 border border-dashed border-indigo-900/60 hover:border-cyan-500/80 rounded-xl bg-fmDark/40 text-center transition cursor-pointer shrink-0">
+        <div class="flex items-center justify-center gap-2 text-indigo-400 text-xs font-medium">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>.fmf Sürükle & Bırak</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MIDDLE COLUMN: Tactical Pitch -->
+    <main class="flex-1 bg-fmDark flex flex-col items-center justify-start gap-2 p-3 overflow-y-auto min-h-0 relative">
+      
+      <!-- Top controls bar -->
+      <div class="w-full max-w-xl flex items-center justify-between bg-fmCard/80 backdrop-blur border border-indigo-950/80 px-4 py-2 rounded-xl shadow-lg shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400 font-medium">Aktif Taktik:</span>
+            <span id="currentTacticTitle" class="text-sm font-bold text-cyan-300">a.fmf</span>
+          </div>
+          <span class="text-slate-600">|</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400 font-medium">Diziliş:</span>
+            <select id="formationSelect" onchange="applyFormation(this.value)" class="bg-fmDark border border-indigo-900 text-xs text-indigo-200 font-semibold px-2.5 py-1 rounded-lg focus:outline-none focus:border-cyan-400">
+              <option value="4-2-3-1" selected>4-2-3-1 Geniş</option>
+              <option value="4-3-3">4-3-3 DM Geniş (Gegenpress)</option>
+              <option value="4-4-2">4-4-2 Klasik</option>
+              <option value="5-2-3">5-2-3 Kanat Bekli</option>
+              <option value="3-5-2">3-5-2 Çift Forvet</option>
+              <option value="4-1-2-1-2">4-1-2-1-2 Baklava (Diamond)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400 font-medium">Zihniyet:</span>
+          <select id="mentalitySelect" onchange="updateMentality(this.value)" class="bg-fmDark border border-indigo-900 text-xs text-emerald-300 font-semibold px-2.5 py-1 rounded-lg focus:outline-none focus:border-emerald-400">
+            <option value="Çok Savunmacı">Çok Savunmacı</option>
+            <option value="Savunmacı">Savunmacı</option>
+            <option value="Dengeli">Dengeli</option>
+            <option value="Pozitif Futbol" selected>Pozitif Futbol</option>
+            <option value="Hücumcu">Hücumcu</option>
+            <option value="Çok Hücumcu">Çok Hücumcu</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Football Pitch Canvas -->
+      <div id="pitchWrapper" style="height: min(520px, calc(100vh - 170px)); min-height: 440px;" class="relative w-full max-w-xl football-pitch rounded-2xl overflow-hidden shadow-2xl border-4 border-emerald-950/80 shrink-0">
+        <!-- Field markings -->
+        <div class="pitch-line border-t-2 w-full top-1/2 -translate-y-1/2"></div>
+        <div class="pitch-line border-2 rounded-full w-28 h-28 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+        <div class="pitch-line w-2 h-2 bg-white/70 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+
+        <!-- Top Penalty Box -->
+        <div class="pitch-line border-2 border-t-0 w-64 h-28 top-0 left-1/2 -translate-x-1/2"></div>
+        <div class="pitch-line border-2 border-t-0 w-28 h-10 top-0 left-1/2 -translate-x-1/2"></div>
+        <div class="pitch-line border-2 rounded-full w-24 h-10 top-28 left-1/2 -translate-x-1/2 border-t-0"></div>
+
+        <!-- Bottom Penalty Box -->
+        <div class="pitch-line border-2 border-b-0 w-64 h-28 bottom-0 left-1/2 -translate-x-1/2"></div>
+        <div class="pitch-line border-2 border-b-0 w-28 h-10 bottom-0 left-1/2 -translate-x-1/2"></div>
+        <div class="pitch-line border-2 rounded-full w-24 h-10 bottom-28 left-1/2 -translate-x-1/2 border-b-0"></div>
+
+        <!-- Corner arcs -->
+        <div class="pitch-line border-2 border-l-0 border-t-0 rounded-br-full w-5 h-5 top-0 left-0"></div>
+        <div class="pitch-line border-2 border-r-0 border-t-0 rounded-bl-full w-5 h-5 top-0 right-0"></div>
+        <div class="pitch-line border-2 border-l-0 border-b-0 rounded-tr-full w-5 h-5 bottom-0 left-0"></div>
+        <div class="pitch-line border-2 border-r-0 border-b-0 rounded-tl-full w-5 h-5 bottom-0 right-0"></div>
+
+        <!-- 11 Player Tokens Layer -->
+        <div id="playersContainer" class="absolute inset-0"></div>
+      </div>
+
+      <!-- Pitch footer helper text -->
+      <div class="text-center text-[11px] text-slate-400 shrink-0">
+        <i class="fa-solid fa-arrows-up-down-left-right text-indigo-400 mr-1"></i>
+        <span>Oyuncuları sahadaki herhangi bir noktaya serbestçe sürükleyebilirsiniz. Rol değiştirmek için oyuncuya tıklayın.</span>
+      </div>
+    </main>
+
+    <!-- RIGHT COLUMN: Tactics Inspector & Details -->
+    <aside class="w-96 bg-fmSidebar border-l border-indigo-950/60 flex flex-col shrink-0 min-h-0 h-full">
+      <!-- Tabs header -->
+      <div class="p-2 border-b border-indigo-950/60 flex items-center justify-around text-xs font-semibold">
+        <button onclick="switchTab('playerTab')" id="btn-playerTab" class="tab-btn px-3 py-1.5 rounded-lg text-cyan-400 bg-fmDark font-medium transition">
+          <i class="fa-solid fa-user mr-1"></i> Oyuncu
+        </button>
+        <button onclick="switchTab('tacticsTab')" id="btn-tacticsTab" class="tab-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">
+          <i class="fa-solid fa-sliders mr-1"></i> Talimatlar
+        </button>
+        <button onclick="switchTab('fmfTab')" id="btn-fmfTab" class="tab-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition">
+          <i class="fa-solid fa-file-code mr-1"></i> .FMF Verisi
+        </button>
+      </div>
+
+      <!-- Tab 1: Selected Player Editor -->
+      <div id="playerTab" class="tab-content flex-1 min-h-0 p-4 overflow-y-auto space-y-4">
+        <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950/80 shadow-md">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span id="playerShirtNum" class="w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold flex items-center justify-center text-xs">10</span>
+              <h3 id="playerPosTitle" class="font-bold text-sm text-slate-100">OOS (Merkez)</h3>
+            </div>
+            <span id="playerDutyBadge" class="bg-cyan-950 text-cyan-300 border border-cyan-800 text-[11px] px-2 py-0.5 rounded font-mono">Hücum</span>
+          </div>
+
+          <div class="space-y-1 mb-3">
+            <label class="text-[11px] text-slate-400 font-medium">Oyuncu / Pozisyon Adı</label>
+            <input type="text" id="playerNameInput" oninput="updateActivePlayerName(this.value)" class="w-full bg-fmDark border border-indigo-950 focus:border-cyan-400 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none">
+          </div>
+
+          <div class="space-y-1 mb-3">
+            <label class="text-[11px] text-slate-400 font-medium">FM Rolü</label>
+            <select id="playerRoleSelect" onchange="updateActivePlayerRole(this.value)" class="w-full bg-fmDark border border-indigo-950 focus:border-cyan-400 rounded-lg px-2.5 py-1.5 text-xs text-cyan-200 font-medium focus:outline-none"></select>
+          </div>
+
+          <div class="space-y-1 mb-3">
+            <label class="text-[11px] text-slate-400 font-medium">Görev (Duty)</label>
+            <div class="grid grid-cols-4 gap-1.5 text-xs">
+              <button onclick="setPlayerDuty('De')" class="duty-btn py-1.5 bg-fmDark hover:bg-indigo-900/50 border border-indigo-950 rounded text-slate-300 font-medium text-center" data-duty="De">Savunma</button>
+              <button onclick="setPlayerDuty('Su')" class="duty-btn py-1.5 bg-fmDark hover:bg-indigo-900/50 border border-indigo-950 rounded text-slate-300 font-medium text-center" data-duty="Su">Destek</button>
+              <button onclick="setPlayerDuty('At')" class="duty-btn py-1.5 bg-fmDark hover:bg-indigo-900/50 border border-indigo-950 rounded text-slate-300 font-medium text-center" data-duty="At">Hücum</button>
+              <button onclick="setPlayerDuty('Au')" class="duty-btn py-1.5 bg-fmDark hover:bg-indigo-900/50 border border-indigo-950 rounded text-slate-300 font-medium text-center" data-duty="Au">Otomatik</button>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-indigo-950/60 flex items-center justify-between text-[11px] text-slate-400">
+            <span>Saha Konumu:</span>
+            <span id="playerCoordsLabel" class="font-mono text-cyan-400">X: 50% | Y: 34%</span>
+          </div>
+        </div>
+
+        <!-- Notes Card -->
+        <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950/80 shadow-md">
+          <h4 class="text-xs font-semibold text-slate-200 mb-2 flex items-center gap-1.5">
+            <i class="fa-regular fa-note-sticky text-amber-400"></i> Bu Taktik İçin Notlarım
+          </h4>
+          <textarea id="tacticNotesTextarea" rows="4" placeholder="Taktik zayıf/güçlü yönleri, rakip analizleri ve oyuncu talimatları..." class="w-full bg-fmDark border border-indigo-950 focus:border-amber-400 rounded-lg p-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none resize-none"></textarea>
+          <button onclick="saveCurrentTacticDetails()" class="mt-2.5 w-full py-2 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow transition">
+            <i class="fa-solid fa-floppy-disk"></i> Değişiklikleri Kaydet
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 2: Tactics Instructions -->
+      <div id="tacticsTab" class="tab-content hidden flex-1 min-h-0 p-4 overflow-y-auto space-y-3.5 text-xs">
+        <div class="bg-fmCard p-3 rounded-xl border border-indigo-950/80 space-y-2">
+          <h4 class="font-semibold text-cyan-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-arrows-split-up-and-left"></i> Topa Sahipken
+          </h4>
+          <div class="space-y-1.5 text-slate-300">
+            <div class="flex justify-between items-center"><span>Hücum Genişliği:</span><span class="text-indigo-300 font-medium">Oldukça Geniş</span></div>
+            <div class="flex justify-between items-center"><span>Paslaşma Biçimi:</span><span class="text-indigo-300 font-medium">Kısa Pas</span></div>
+            <div class="flex justify-between items-center"><span>Tempo:</span><span class="text-indigo-300 font-medium">Yüksek Tempo</span></div>
+            <div class="flex justify-between items-center"><span>Defanstan Çıkış:</span><span class="text-emerald-400 font-medium">Kısa Pasla Çık</span></div>
+          </div>
+        </div>
+
+        <div class="bg-fmCard p-3 rounded-xl border border-indigo-950/80 space-y-2">
+          <h4 class="font-semibold text-amber-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-repeat"></i> Geçiş Evresi
+          </h4>
+          <div class="space-y-1.5 text-slate-300">
+            <div class="flex justify-between items-center"><span>Top Kaybedilince:</span><span class="text-amber-300 font-medium">Karşı Pres Yap</span></div>
+            <div class="flex justify-between items-center"><span>Top Kazanılınca:</span><span class="text-amber-300 font-medium">Kontraya Kalk</span></div>
+            <div class="flex justify-between items-center"><span>Kaleci Dağıtımı:</span><span class="text-indigo-300 font-medium">Beklere / Stopere</span></div>
+          </div>
+        </div>
+
+        <div class="bg-fmCard p-3 rounded-xl border border-indigo-950/80 space-y-2">
+          <h4 class="font-semibold text-rose-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-shield-halved"></i> Top Rakipteyken
+          </h4>
+          <div class="space-y-1.5 text-slate-300">
+            <div class="flex justify-between items-center"><span>Savunma Hattı:</span><span class="text-rose-300 font-medium">Daha İleride</span></div>
+            <div class="flex justify-between items-center"><span>Pres Hattı:</span><span class="text-rose-300 font-medium">Önde Karşıla</span></div>
+            <div class="flex justify-between items-center"><span>Pres Şiddeti:</span><span class="text-rose-300 font-medium">Çok Sık Pres</span></div>
+            <div class="flex justify-between items-center"><span>Ofsayt Taktiği:</span><span class="text-emerald-400 font-medium">Aktif</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: .FMF Binary / TOC Inspector -->
+      <div id="fmfTab" class="tab-content hidden flex-1 min-h-0 p-4 overflow-y-auto space-y-3 text-xs">
+        <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950/80 space-y-2.5">
+          <h4 class="font-semibold text-cyan-400 flex items-center gap-1.5 text-sm">
+            <i class="fa-solid fa-box-archive"></i> SI Arşiv Özeti
+          </h4>
+          <div id="fmfMetaDetails" class="space-y-1.5 text-slate-300 font-mono text-[11px]"></div>
+        </div>
+
+        <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950/80 space-y-2">
+          <h4 class="font-semibold text-indigo-300 flex items-center gap-1.5 text-xs">
+            <i class="fa-solid fa-folder-tree"></i> İçerik Tablosu (TOC)
+          </h4>
+          <div id="fmfTocList" class="space-y-2"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Scripts modularly imported -->
+  <script src="/js/formations.js"></script>
+  <script src="/js/pitch.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
