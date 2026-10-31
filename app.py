@@ -139,7 +139,8 @@ def get_tactics(folder: Optional[str] = None):
                 "toc_items": []
             })
 
-    results.sort(key=lambda x: x["file_name"].lower())
+    # Sort by most recently created/modified first (newest at top)
+    results.sort(key=lambda x: x.get("modified_timestamp", 0), reverse=True)
     return {
         "status": "ok",
         "current_folder": target_folder,

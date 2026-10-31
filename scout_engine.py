@@ -34,12 +34,16 @@ def get_candidate_save_dirs() -> List[str]:
     if env_dir and os.path.exists(env_dir):
         dirs.append(env_dir)
 
-    # 1. Official Documents\Sports Interactive\Football Manager <Version>\games FIRST
+    # 1. Official Documents\Sports Interactive\Football Manager <Version>\games & AppData\Local\Sports Interactive FIRST
     user_home = os.path.expanduser("~")
     for ver in ("27", "2027", "26", "2026", "2024", "24"):
-        cand = os.path.join(user_home, "Documents", "Sports Interactive", f"Football Manager {ver}", "games")
-        if os.path.exists(cand):
-            dirs.append(cand)
+        for sub in ("games", "cloud", "Temporary"):
+            cand_doc = os.path.join(user_home, "Documents", "Sports Interactive", f"Football Manager {ver}", sub)
+            if os.path.exists(cand_doc):
+                dirs.append(cand_doc)
+            cand_appdata = os.path.join(user_home, "AppData", "Local", "Sports Interactive", f"Football Manager {ver}", sub)
+            if os.path.exists(cand_appdata):
+                dirs.append(cand_appdata)
 
     # 2. Local config (explicit saves_dir or archive fallback from tactics_dir)
     local_cfg = os.path.join(BASE_DIR, "config.local.json")
@@ -328,6 +332,7 @@ class UniversalScoutEngine:
                                 "modified_timestamp": mtime,
                                 "version_guess": f"{game_guess} • {source_label}",
                                 "is_official_docs": is_official_docs,
+                                "is_fm27": is_fm27,
                                 "is_modern": is_fm27 or is_fm26,
                                 "is_backup": is_backup,
                                 "_internal_path": full_path
@@ -337,7 +342,7 @@ class UniversalScoutEngine:
                             sys.stderr.write(f"[Scout Stat Warning] {exc}\n")
                             continue
 
-        saves.sort(key=lambda s: (s["is_official_docs"], s["is_modern"], not s["is_backup"], s["modified_timestamp"]), reverse=True)
+        saves.sort(key=lambda s: (s["is_official_docs"], s["is_fm27"], s["is_modern"], not s["is_backup"], s["modified_timestamp"]), reverse=True)
         for idx, s in enumerate(saves):
             s["id"] = idx
         return saves

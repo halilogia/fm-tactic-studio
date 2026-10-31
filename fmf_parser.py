@@ -99,6 +99,7 @@ def parse_fmf_file(file_path):
         "file_size": file_size,
         "file_size_formatted": f"{file_size:,} bytes",
         "modified_at": mtime,
+        "modified_timestamp": stat.st_mtime,
         "is_encrypted": is_afe,
         "format_type": "AFE (Archive File Encrypted)" if is_afe else ("FMF (Archive File)" if is_fmf else "SI Archive"),
         "toc_items": toc_items,
