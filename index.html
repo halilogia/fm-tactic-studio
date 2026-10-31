@@ -4,11 +4,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FM Tactic Studio & Universal Scout (FM 26 / FM 27)</title>
+  <script>
+    (function () {
+      try {
+        var saved = JSON.parse(localStorage.getItem("fm-tactic-studio.settings.v1") || "{}");
+        var params = new URLSearchParams(window.location.search);
+        var theme = params.get("theme") || saved.theme || "dark";
+        document.documentElement.dataset.theme = theme === "light" || theme === "oled" ? theme : "dark";
+        document.documentElement.lang = params.get("lang") || saved.language || "tr";
+      } catch (err) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    })();
+  </script>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/dist/tailwind_theme.js?v=2.0.0"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/dist/tailwind.css?v=3.4.0">
+  <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
   <link rel="stylesheet" href="/css/styles.css?v=2.0.1">
+  <link rel="stylesheet" href="/css/themes.css?v=3.4.0">
 </head>
 <body class="bg-fmDark text-slate-100 font-sans h-screen w-screen flex flex-col overflow-hidden">
 
@@ -43,6 +56,9 @@
 
     <!-- Right Actions -->
     <div class="flex items-center gap-2">
+      <button onclick="openSettings()" class="px-3 py-1 bg-fmDark/80 hover:bg-fmCard text-slate-300 border border-indigo-900/70 rounded-lg text-xs font-medium flex items-center gap-1.5 transition" title="Ayarlar">
+        <i class="fa-solid fa-gear text-cyan-400"></i> <span>Ayarlar</span>
+      </button>
       <button onclick="refreshTactics()" class="px-3 py-1 bg-indigo-950/80 hover:bg-indigo-900 text-indigo-200 border border-indigo-800/60 rounded-lg text-xs font-medium flex items-center gap-1.5 transition">
         <i class="fa-solid fa-rotate text-indigo-400" id="refreshIcon"></i> Yenile
       </button>
@@ -214,27 +230,9 @@
       </div>
 
       <div id="tacticsTab" class="tab-content hidden flex-1 min-h-0 p-4 overflow-y-auto space-y-3.5 text-xs">
-        <div class="bg-fmCard p-3 rounded-xl border border-indigo-950/80 space-y-2">
-          <h4 class="font-semibold text-cyan-400 flex items-center gap-1.5"><i class="fa-solid fa-arrows-split-up-and-left"></i> Topa Sahipken</h4>
-          <div class="space-y-1.5 text-slate-300">
-            <div class="flex justify-between"><span>Hücum Genişliği:</span><span class="text-indigo-300 font-medium">Oldukça Geniş</span></div>
-            <div class="flex justify-between"><span>Paslaşma Biçimi:</span><span class="text-indigo-300 font-medium">Kısa Pas</span></div>
-            <div class="flex justify-between"><span>Tempo:</span><span class="text-indigo-300 font-medium">Yüksek Tempo</span></div>
-          </div>
-        </div>
-        <div class="bg-fmCard p-3 rounded-xl border border-indigo-950/80 space-y-2">
-          <h4 class="font-semibold text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-repeat"></i> Geçiş Evresi</h4>
-          <div class="space-y-1.5 text-slate-300">
-            <div class="flex justify-between"><span>Top Kaybedilince:</span><span class="text-amber-300 font-medium">Karşı Pres Yap</span></div>
-            <div class="flex justify-between"><span>Top Kazanılınca:</span><span class="text-amber-300 font-medium">Kontraya Kalk</span></div>
-          </div>
-        </div>
-        <div class="bg-fmCard p-3 rounded-xl border border-indigo-950/80 space-y-2">
-          <h4 class="font-semibold text-rose-400 flex items-center gap-1.5"><i class="fa-solid fa-shield-halved"></i> Top Rakipteyken</h4>
-          <div class="space-y-1.5 text-slate-300">
-            <div class="flex justify-between"><span>Savunma Hattı:</span><span class="text-rose-300 font-medium">Daha İleride</span></div>
-            <div class="flex justify-between"><span>Pres Şiddeti:</span><span class="text-rose-300 font-medium">Çok Sık Pres</span></div>
-          </div>
+        <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950/80 space-y-2">
+          <h4 class="font-semibold text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-lock"></i> Takım Talimatları Okunamıyor</h4>
+          <p class="text-slate-300 text-xs leading-relaxed">Takım talimatları .fmf içindeki şifreli .tac dosyasından okunamıyor. Diziliş ve zihniyeti yukarıdan manuel seçebilir, notlarınızı kaydedebilirsiniz.</p>
         </div>
       </div>
 
@@ -309,6 +307,9 @@
         <button id="btnFreeAgentsToggle" onclick="toggleFreeAgentsFilter()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-emerald-300 border border-emerald-700/60 hover:bg-emerald-950/50 transition" title="Kulüpsüz (Serbest) Oyuncular">
           <i class="fa-solid fa-user-check mr-1"></i> Serbest
         </button>
+        <button id="btnYouthToggle" onclick="toggleYouthFilter()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-fuchsia-300 border border-fuchsia-700/60 hover:bg-fuchsia-950/50 transition" title="Sadece altyapı/genç takım oyuncuları">
+          <i class="fa-solid fa-graduation-cap mr-1"></i> Altyapı
+        </button>
         <button id="btnExpiringToggle" onclick="toggleExpiringContractsFilter()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-rose-300 border border-rose-700/60 hover:bg-rose-950/50 transition" title="Sözleşmesi 2026-2027 İçinde Bitenler">
           <i class="fa-solid fa-file-signature mr-1"></i> Sözleşme Sonu
         </button>
@@ -342,10 +343,10 @@
             <th class="px-1.5 py-2 text-center w-7 border-r border-indigo-950/60" title="Takip Listesi">⭐</th>
             <th data-sort-col="name" onclick="sortScoutColumn('name')" class="px-2.5 py-2 cursor-pointer hover:text-cyan-300 border-r border-indigo-950/60">Oyuncu Adı <span class="sort-indicator text-slate-600">⇅</span></th>
             <th data-sort-col="age" onclick="sortScoutColumn('age')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60">Yaş <span class="sort-indicator text-slate-600">⇅</span></th>
-            <th class="px-2 py-2 w-20 border-r border-indigo-950/60">Mevki</th>
-            <th data-sort-col="best_rating" onclick="sortScoutColumn('best_rating')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-24 border-r border-indigo-950/60" title="FM Genie Scout Tarzı En İyi Rol Uygunluk %">Rol % <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="positions_order" onclick="sortScoutColumn('positions_order')" class="px-2 py-2 w-20 cursor-pointer hover:text-cyan-300 border-r border-indigo-950/60" title="Mevkiye göre sırala (GK → ST / ST → GK)">Mevki <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="best_rating" onclick="sortScoutColumn('best_rating')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-24 border-r border-indigo-950/60" title="Oyuncunun kayıtlı mevkilerine göre en iyi rol uygunluğu">Rol % <span class="sort-indicator text-slate-600">⇅</span></th>
             <th data-sort-col="pot_rating" onclick="sortScoutColumn('pot_rating')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-20 border-r border-indigo-950/60" title="Potansiyel Zirve Puanı %">Pot % <span class="sort-indicator text-slate-600">⇅</span></th>
-            <th data-sort-col="dev_score" onclick="sortScoutColumn('dev_score')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-20 border-r border-indigo-950/60" title="Gelişim ve Antrenman İndeksi (S/A+/A/B/C)">Gelişim <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="dev_score" onclick="sortScoutColumn('dev_score')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-20 border-r border-indigo-950/60" title="Gelişim ve Antrenman İndeksi (S/A+/A/B/C)">Gelişim <span class="sort-indicator text-slate-600">⇅</span> <button onclick="event.stopPropagation(); openInfoModal('devIndex')" class="ml-0.5 w-3.5 h-3.5 rounded-full bg-indigo-900/80 text-indigo-300 text-[9px] font-bold hover:bg-indigo-700 hover:text-white transition" title="Gelişim indeksi nasıl hesaplanır?">i</button></th>
             <th data-sort-col="club_name" onclick="sortScoutColumn('club_name')" class="px-2.5 py-2 cursor-pointer hover:text-cyan-300 border-r border-indigo-950/60">Kulüp <span class="sort-indicator text-slate-600">⇅</span></th>
             <th data-sort-col="nation_name" onclick="sortScoutColumn('nation_name')" class="px-2 py-2 cursor-pointer hover:text-cyan-300 border-r border-indigo-950/60">Ülke <span class="sort-indicator text-slate-600">⇅</span></th>
             <th data-sort-col="ca" onclick="sortScoutColumn('ca')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60">CA <span class="sort-indicator text-slate-600">⇅</span></th>
@@ -397,7 +398,7 @@
       <div class="flex items-center gap-3 text-slate-400">
         <span>Toplam Eşleşen: <b id="scoutResultCountLabel" class="text-cyan-300 font-mono">0 kayıt</b></span>
         <span>•</span>
-        <span class="text-[11px]">Detaylı gizli özellik kartı, 8 köşeli radar ve taktiğe atamak için satıra tıklayın.</span>
+        <span class="text-[11px]">Detaylı gizli özellik kartı, oyuncu karşılaştırma ve taktiğe atamak için satıra tıklayın.</span>
       </div>
       <div class="flex items-center gap-2">
         <button onclick="scoutPrevPage()" class="px-2.5 py-0.5 bg-fmCard hover:bg-indigo-900 border border-indigo-900 rounded text-slate-200">Önceki 100</button>
@@ -407,7 +408,7 @@
     </div>
   </div>
 
-  <!-- Player Hidden Attributes & Radar Detail Modal -->
+  <!-- Player Hidden Attributes & Comparison Detail Modal -->
   <div id="scoutPlayerModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-fmCard border border-indigo-800 rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col p-5 shadow-2xl relative overflow-hidden">
       <button onclick="closeScoutPlayerModal()" class="absolute top-3 right-3 w-7 h-7 rounded-lg bg-fmDark hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition z-20">
@@ -433,6 +434,7 @@
         </div>
       </div>
       <div id="bestXiModalContent" class="flex-1 overflow-y-auto space-y-4"></div>
+      <p id="applyBestXiInfo" class="hidden text-center text-emerald-400 text-[11px] font-bold"></p>
       <div class="border-t border-indigo-950 pt-3 mt-3 flex justify-end gap-2 shrink-0">
         <button onclick="closeBestXiModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-semibold transition">Kapat</button>
         <button id="btnApplyBestXi" onclick="applyCurrentBestXi()" class="px-4 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-xs font-bold shadow-lg transition flex items-center gap-1.5">
@@ -442,10 +444,68 @@
     </div>
   </div>
 
+  <!-- Info / Explanation Modal -->
+  <div id="infoModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4" onclick="if (event.target === this) closeInfoModal()">
+    <div class="bg-fmCard border border-indigo-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl relative">
+      <button onclick="closeInfoModal()" class="absolute top-3 right-3 w-7 h-7 rounded-lg bg-fmDark hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <h3 id="infoModalTitle" class="text-base font-bold text-white mb-3 pr-8"></h3>
+      <div id="infoModalBody" class="text-xs text-slate-300 space-y-2"></div>
+    </div>
+  </div>
+
+  <!-- Settings & Appearance Modal -->
+  <div id="settingsModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onclick="if (event.target === this) closeSettings()">
+    <div class="bg-fmCard border border-indigo-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl relative">
+      <button onclick="closeSettings()" class="absolute top-3 right-3 w-7 h-7 rounded-lg bg-fmDark hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div class="flex items-center gap-2 border-b border-indigo-950 pb-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-white text-sm shadow">
+          <i class="fa-solid fa-gear"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">Ayarlar</h3>
+          <p class="text-[11px] text-slate-400">FM Tactic Studio</p>
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <p class="text-[11px] uppercase tracking-wide text-slate-400 font-bold mb-2">Görünüm</p>
+          <div class="grid grid-cols-3 gap-2">
+            <button data-theme-choice="dark" onclick="setTheme('dark')" class="theme-choice px-3 py-2 rounded-xl border text-xs font-semibold bg-fmDark/60 border-indigo-900 text-slate-300 hover:border-indigo-700 transition">
+              <i class="fa-solid fa-moon block text-base mb-1"></i> Karanlık
+            </button>
+            <button data-theme-choice="light" onclick="setTheme('light')" class="theme-choice px-3 py-2 rounded-xl border text-xs font-semibold bg-fmDark/60 border-indigo-900 text-slate-300 hover:border-indigo-700 transition">
+              <i class="fa-solid fa-sun block text-base mb-1"></i> Aydınlık
+            </button>
+            <button data-theme-choice="oled" onclick="setTheme('oled')" class="theme-choice px-3 py-2 rounded-xl border text-xs font-semibold bg-fmDark/60 border-indigo-900 text-slate-300 hover:border-indigo-700 transition">
+              <i class="fa-solid fa-circle-half-stroke block text-base mb-1"></i> OLED
+            </button>
+          </div>
+        </div>
+        <div>
+          <p class="text-[11px] uppercase tracking-wide text-slate-400 font-bold mb-2">Dil</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button data-lang-choice="tr" onclick="setLanguage('tr')" class="lang-choice px-3 py-2 rounded-xl border text-xs font-semibold bg-fmDark/60 border-indigo-900 text-slate-300 hover:border-indigo-700 transition">
+              <i class="fa-solid fa-language mr-1"></i> Türkçe
+            </button>
+            <button data-lang-choice="en" onclick="setLanguage('en')" class="lang-choice px-3 py-2 rounded-xl border text-xs font-semibold bg-fmDark/60 border-indigo-900 text-slate-300 hover:border-indigo-700 transition">
+              <i class="fa-solid fa-earth-europe mr-1"></i> English
+            </button>
+          </div>
+        </div>
+        <p class="text-[10px] text-slate-500 text-center">Ayarlar otomatik olarak kaydedilir.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- Compiled TypeScript Bundles -->
-  <script src="/dist/formations.js?v=3.1"></script>
-  <script src="/dist/pitch.js?v=3.1"></script>
-  <script src="/dist/scout.js?v=3.1"></script>
-  <script src="/dist/app.js?v=3.1"></script>
+  <script src="/dist/settings.js?v=3.4.0"></script>
+  <script src="/dist/formations.js?v=3.4.0"></script>
+  <script src="/dist/pitch.js?v=3.4.0"></script>
+  <script src="/dist/scout.js?v=3.4.0"></script>
+  <script src="/dist/app.js?v=3.4.0"></script>
 </body>
 </html>

@@ -1,14 +1,13 @@
-"use strict";
 /**
- * FM Universal Scout & Genie Scout Pro Controller (TypeScript)
+ * FM Universal Scout Controller (TypeScript)
  * Features:
  * - Excel-Like Data Grid & Column Filtering
  * - Dedicated Type-and-Confirm Club Picker (Kulüp Seçici) with Loaned/Youth Player Integration
  * - Positional Suitability Ratings % (GK..ST)
  * - Development Speed Index (S+/A+/A/B/C)
  * - Shortlist & Scout Notes
- * - 8-Axis SVG Octagon Radar & Player Comparison
- * - FM Genie Scout Style Baseline Progress Tracker (+1/+2 Attribute Deltas)
+ * - Player Comparison Chart
+ * - Career Baseline Progress Tracker (real recorded deltas)
  * - Save Watcher & Instant Save Live-Reload
  */
 let scoutSortBy = "pa";
@@ -19,7 +18,9 @@ let scoutTotalCount = 0;
 let scoutWonderkidsOnly = false;
 let scoutFreeAgentsOnly = false;
 let scoutExpiringContractsOnly = false;
+let scoutYouthOnly = false;
 let scoutShortlistOnly = false;
+let scoutClubMeta = {};
 let scoutShortlistCount = 0;
 let scoutDebounceTimer = null;
 let scoutSaveWatcherInterval = null;
@@ -35,6 +36,23 @@ async function initScoutModule() {
     await fetchAvailableSaves();
     await fetchClubsForPicker();
     await fetchShortlistMeta();
+    const params = new URLSearchParams(window.location.search);
+    const clubParam = params.get("club");
+    const clubInput = document.getElementById("scoutClubInput");
+    if (clubParam) {
+        const resolved = resolveClubName(clubParam);
+        if (clubInput)
+            clubInput.value = resolved;
+        const colClubInput = document.getElementById("colFilterClub");
+        if (colClubInput)
+            colClubInput.value = resolved;
+        scoutActiveClub = resolved;
+        updateActiveClubBanner(resolved);
+    }
+    if (params.get("youth") === "1") {
+        scoutYouthOnly = true;
+        updateYouthToggleButton();
+    }
     await queryScoutPlayers(0);
     startSaveWatcher();
 }
@@ -47,7 +65,12 @@ async function fetchClubsForPicker() {
         const res = await fetch("/api/clubs");
         const data = await res.json();
         const clubs = data.clubs || [];
-        datalist.innerHTML = clubs.map((c) => `<option value="${c.club_name}">${c.club_name} (${c.player_count} Oyuncu • Ort CA: ${c.avg_ca})</option>`).join("");
+        scoutClubMeta = {};
+        datalist.innerHTML = clubs.map((c) => {
+            scoutClubMeta[c.club_name] = { player_count: c.player_count, youth_count: c.youth_count || 0 };
+            const youthPart = c.youth_count > 0 ? ` • ${c.youth_count} Altyapı` : "";
+            return `<option value="${c.club_name}">${c.club_name} (${c.player_count} Oyuncu${youthPart} • Ort CA: ${c.avg_ca})</option>`;
+        }).join("");
     }
     catch (err) {
         console.error("Kulüp listesi datalist'e yüklenemedi:", err);
@@ -86,6 +109,16 @@ function selectQuickClub(clubName) {
         input.value = clubName;
     confirmClubPicker();
 }
+function resolveClubName(query) {
+    const needle = query.trim().toLowerCase();
+    if (!needle)
+        return query;
+    const exact = Object.keys(scoutClubMeta).find((name) => name.toLowerCase() === needle);
+    if (exact)
+        return exact;
+    const partial = Object.keys(scoutClubMeta).find((name) => name.toLowerCase().startsWith(needle));
+    return partial || query;
+}
 function updateActiveClubBanner(clubName) {
     const banner = document.getElementById("activeClubBanner");
     const title = document.getElementById("activeClubTitle");
@@ -95,8 +128,12 @@ function updateActiveClubBanner(clubName) {
     if (clubName) {
         banner.classList.remove("hidden");
         title.innerText = clubName;
-        if (stats)
-            stats.innerText = `(Kadrosu & Kiralık Oyuncuları)`;
+        if (stats) {
+            const meta = scoutClubMeta[clubName] || scoutClubMeta[resolveClubName(clubName)];
+            stats.innerText = meta
+                ? `(${meta.player_count} Oyuncu${meta.youth_count > 0 ? ` • ${meta.youth_count} Altyapı` : ""})`
+                : `(Kadrosu & Kiralık Oyuncuları)`;
+        }
     }
     else {
         banner.classList.add("hidden");
@@ -212,7 +249,7 @@ async function reloadCurrentSave() {
         const res = await fetch("/api/reload-save", { method: "POST" });
         const data = await res.json();
         if (!res.ok)
-            throw new Error(data.detail || "Yeniden yüklenemedi");
+            throw new Error(data.detail || T("Yeniden yüklenemedi"));
         if (banner)
             banner.classList.add("hidden");
         const statusBadge = document.getElementById("scoutSaveStatusBadge");
@@ -224,7 +261,7 @@ async function reloadCurrentSave() {
         await queryScoutPlayers(0);
     }
     catch (err) {
-        alert("Kayıt yenileme hatası: " + (err.message || err));
+        alert(T("Kayıt yenileme hatası: ") + (err.message || err));
     }
     finally {
         if (icon)
@@ -267,7 +304,7 @@ async function loadSelectedSaveFile() {
     const customPath = customPathEl && customPathEl.value.trim() ? customPathEl.value.trim() : "";
     const saveRef = customPath || (selectEl ? selectEl.value : "");
     if (!saveRef) {
-        alert("Lütfen listeden bir .fm kaydı seçin veya dosya yükleyin.");
+        alert(T("Lütfen listeden bir .fm kaydı seçin veya dosya yükleyin."));
         return;
     }
     if (loadBtn) {
@@ -285,7 +322,7 @@ async function loadSelectedSaveFile() {
         });
         const data = await res.json();
         if (!res.ok) {
-            throw new Error(data.detail || "Kayıt yüklenemedi");
+            throw new Error(data.detail || T("Kayıt yüklenemedi"));
         }
         if (statusBadge && data.save_info) {
             statusBadge.innerText = `${data.save_info.file_name} • ${(data.total_players || 0).toLocaleString("tr-TR")} Oyuncu`;
@@ -295,7 +332,7 @@ async function loadSelectedSaveFile() {
         await queryScoutPlayers(0);
     }
     catch (err) {
-        alert("Kayıt dosyası okuma hatası: " + (err.message || err));
+        alert(T("Kayıt dosyası okuma hatası: ") + (err.message || err));
     }
     finally {
         if (loadBtn) {
@@ -319,13 +356,13 @@ async function handleSaveFileUpload(event) {
         const res = await fetch("/api/upload-save", { method: "POST", body: formData });
         const data = await res.json();
         if (!res.ok)
-            throw new Error(data.detail || "Yükleme başarısız");
+            throw new Error(data.detail || T("Yükleme başarısız"));
         await fetchAvailableSaves();
         await fetchClubsForPicker();
         await queryScoutPlayers(0);
     }
     catch (err) {
-        alert("FM Save yükleme hatası: " + (err.message || err));
+        alert(T("FM Save yükleme hatası: ") + (err.message || err));
     }
 }
 // ==================== QUERY PARAMS & FILTER CONTROLS ====================
@@ -355,6 +392,7 @@ function buildScoutQueryParams(offsetVal) {
     params.set("min_pressure", getFilterVal("colFilterMinPres", "0") || "0");
     params.set("wonderkids_only", String(scoutWonderkidsOnly));
     params.set("free_agents_only", String(scoutFreeAgentsOnly));
+    params.set("youth_only", String(scoutYouthOnly));
     params.set("shortlist_only", String(scoutShortlistOnly));
     params.set("max_contract_year", scoutExpiringContractsOnly ? "2027" : "0");
     params.set("sort_by", scoutSortBy);
@@ -401,6 +439,19 @@ function toggleExpiringContractsFilter() {
     }
     queryScoutPlayers(0);
 }
+function updateYouthToggleButton() {
+    const btn = document.getElementById("btnYouthToggle");
+    if (!btn)
+        return;
+    btn.className = scoutYouthOnly
+        ? "px-2.5 py-1 rounded-lg text-xs font-bold bg-fuchsia-500 text-white border border-fuchsia-300 shadow-md transition"
+        : "px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-fuchsia-300 border border-fuchsia-700/60 hover:bg-fuchsia-950/50 transition";
+}
+function toggleYouthFilter() {
+    scoutYouthOnly = !scoutYouthOnly;
+    updateYouthToggleButton();
+    queryScoutPlayers(0);
+}
 function resetScoutFilters() {
     const ids = [
         "scoutGlobalSearch", "scoutClubInput", "colFilterName", "colFilterClub", "colFilterNation", "colFilterPos",
@@ -418,6 +469,7 @@ function resetScoutFilters() {
     scoutWonderkidsOnly = false;
     scoutFreeAgentsOnly = false;
     scoutExpiringContractsOnly = false;
+    scoutYouthOnly = false;
     scoutShortlistOnly = false;
     const btnWk = document.getElementById("btnWonderkidsToggle");
     if (btnWk)
@@ -431,6 +483,7 @@ function resetScoutFilters() {
     const btnSl = document.getElementById("btnShortlistToggle");
     if (btnSl)
         btnSl.className = "px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-amber-300 border border-amber-700/60 hover:bg-amber-950/50 transition";
+    updateYouthToggleButton();
     queryScoutPlayers(0);
 }
 function sortScoutColumn(col) {
@@ -439,7 +492,7 @@ function sortScoutColumn(col) {
     }
     else {
         scoutSortBy = col;
-        scoutSortOrder = col === "injury_proneness" || col === "age" || col === "name" ? "asc" : "desc";
+        scoutSortOrder = col === "injury_proneness" || col === "age" || col === "name" || col === "positions_order" ? "asc" : "desc";
     }
     updateSortHeaderIcons();
     queryScoutPlayers(0);
@@ -594,10 +647,9 @@ async function queryScoutPlayers(offsetVal = 0) {
             const fmt = formatPlayerStatus(p);
             const isLoanedOut = p.is_on_loan && p.loan_parent_club_name;
             const isLoanedIn = p.is_on_loan && !p.loan_parent_club_name;
-            let clubCellHtml = p.club_name;
-            if (isLoanedOut) {
-                clubCellHtml = `<span class="text-slate-200">${p.club_name}</span>`;
-            }
+            const youthBadge = p.team_level
+                ? `<span class="shrink-0 ml-1 text-[9px] bg-fuchsia-950/70 text-fuchsia-300 border border-fuchsia-700/60 px-1 rounded font-bold" title="${p.team_label}">${p.team_level}</span>`
+                : "";
             // Delta (+1, +2)
             let caDeltaBadge = "";
             if (p.ca_delta > 0) {
@@ -626,8 +678,11 @@ async function queryScoutPlayers(offsetVal = 0) {
           <td class="px-2 py-1 text-center border-r border-indigo-950/40">${formatPositionalRatingBadge(p.best_pos, p.best_rating)}</td>
           <td class="px-2 py-1 text-center font-mono text-emerald-400 font-bold border-r border-indigo-950/40">%${p.pot_rating}</td>
           <td class="px-2 py-1 text-center border-r border-indigo-950/40">${formatDevTierBadge(p.dev_tier, p.dev_score)}</td>
-          <td onclick="event.stopPropagation(); selectQuickClub('${p.club_name.replace(/'/g, "\\'")}')" title="${p.club_name} kadrosunu getirmek için tıklayın" class="px-2.5 py-1 text-slate-300 hover:text-cyan-300 hover:underline truncate max-w-[140px] border-r border-indigo-950/40">
-            ${clubCellHtml}
+          <td onclick="event.stopPropagation(); selectQuickClub('${p.club_name.replace(/'/g, "\\'")}')" title="${p.team_label || p.club_name} kadrosunu getirmek için tıklayın" class="px-2.5 py-1 text-slate-300 hover:text-cyan-300 border-r border-indigo-950/40">
+            <div class="flex items-center max-w-[170px]">
+              <span class="truncate ${isLoanedOut ? "text-slate-200" : ""}">${p.club_name}</span>
+              ${youthBadge}
+            </div>
           </td>
           <td class="px-2 py-1 text-slate-400 truncate max-w-[80px] border-r border-indigo-950/40">${p.nation_name}</td>
           <td class="px-2 py-1 text-center border-r border-indigo-950/40 whitespace-nowrap">${formatAbilityBadge(p.ca)}${caDeltaBadge}</td>
@@ -708,22 +763,43 @@ function renderPlayerModal(p) {
         modalStatusBadges.push(`<span class="text-xs px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 font-bold border border-cyan-600/70">⏳ Sözleşme Bitiyor (${p.contract_end_str || ''})</span>`);
     if (p.status_label === "Serbest")
         modalStatusBadges.push(`<span class="text-xs px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-bold border border-slate-600/70">F/A Serbest</span>`);
-    // Positional bars
+    if (p.team_level)
+        modalStatusBadges.push(`<span class="text-xs px-2 py-0.5 rounded bg-fuchsia-950 text-fuchsia-300 font-bold border border-fuchsia-600/70">🎓 ${p.team_label || p.team_level}</span>`);
+    // Positional bars, restricted to positions the save says the player can play.
     const posKeys = ["GK", "DC", "FB", "DM", "MC", "W", "AMC", "ST"];
+    const positionKeyMap = {
+        GK: "GK", DC: "DC", DL: "FB", DR: "FB", WBL: "FB", WBR: "FB",
+        DM: "DM", MC: "MC", ML: "W", MR: "W", AML: "W", AMR: "W",
+        AMC: "AMC", ST: "ST", STC: "ST", STCL: "ST", STCR: "ST"
+    };
+    const eligibleKeys = new Set((p.positions || []).map((pos) => positionKeyMap[pos]).filter(Boolean));
+    const raw = p.position_ratings_raw || {};
+    const rawLabels = [
+        ["gk", "GK"], ["dc", "DC"], ["dl", "DL"], ["dr", "DR"], ["wbl", "WBL"], ["wbr", "WBR"],
+        ["dm", "DM"], ["mc", "MC"], ["ml", "ML"], ["mr", "MR"], ["amc", "AMC"], ["aml", "AML"],
+        ["amr", "AMR"], ["stc", "ST"]
+    ];
+    const rawPositionText = rawLabels
+        .filter(([key]) => Number(raw[key] || 0) >= 10)
+        .map(([key, label]) => `${label} ${raw[key]}`)
+        .join(" · ");
     const posBarsHtml = posKeys.map((k) => {
-        const val = posRatings[k] || 50.0;
+        const val = posRatings[k] || 30.0;
+        const eligible = eligibleKeys.size === 0 || eligibleKeys.has(k);
         let barColor = "bg-slate-700";
-        if (val >= 80.0)
+        if (!eligible)
+            barColor = "bg-slate-700";
+        else if (val >= 80.0)
             barColor = "bg-gradient-to-r from-emerald-500 to-cyan-400";
         else if (val >= 70.0)
             barColor = "bg-cyan-500";
         else if (val >= 60.0)
             barColor = "bg-amber-500";
         return `
-      <div class="space-y-0.5">
+      <div class="space-y-0.5 ${eligible ? "" : "opacity-45"}" title="${eligible ? "" : "Oyuncunun kayıtlı doğal mevkisi değil"}">
         <div class="flex justify-between text-[11px]">
-          <span class="font-bold text-slate-300">${k}</span>
-          <span class="font-mono text-cyan-300 font-semibold">%${val}</span>
+          <span class="font-bold text-slate-300">${k}${eligible ? "" : " <span class='text-[9px] text-slate-500'>(uygun değil)</span>"}</span>
+          <span class="font-mono ${eligible ? "text-cyan-300" : "text-slate-500"} font-semibold">%${val}</span>
         </div>
         <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
           <div class="${barColor} h-1.5 rounded-full" style="width: ${Math.min(100, Math.max(0, val))}%"></div>
@@ -760,6 +836,7 @@ function renderPlayerModal(p) {
           <div class="space-y-2">
             ${posBarsHtml}
           </div>
+          ${rawPositionText ? `<p class="text-[10px] text-slate-400 pt-1 border-t border-indigo-950/60">FM kayıt mevkileri: <b class="text-slate-200">${rawPositionText}</b></p>` : ''}
         </div>
 
         <!-- Hidden Match Attributes -->
@@ -814,8 +891,9 @@ function renderPlayerModal(p) {
           ${modalStatusBadges.map(b => b).join('')}
         </div>
         <p class="text-xs text-slate-400 mt-0.5">
-          ${p.club_name} • ${p.nation_name} • ${p.age} Yaş • Sol/Sağ: ${p.left_foot}/20 - ${p.right_foot}/20
+          ${p.team_label || p.club_name} • ${p.nation_name} • ${p.age} Yaş • Sol/Sağ: ${p.left_foot}/20 - ${p.right_foot}/20
         </p>
+      ${String(p.source_game || "").includes("27") ? `<p class="text-[11px] text-amber-300">${T("FM27 okuyucusunun alanları oyun içinde henüz doğrulanmadı. Oyundaki bilgilerle çelişirse oyun ekranını esas alın.")}</p>` : ''}
       </div>
 
       <div class="flex items-center gap-2 mt-2 sm:mt-0">
@@ -828,7 +906,10 @@ function renderPlayerModal(p) {
           <div class="text-sm font-bold text-emerald-400 font-mono">${p.pa}</div>
         </div>
         <div class="text-center bg-fmDark px-3 py-1 rounded-lg border border-purple-800/70">
-          <div class="text-[9px] text-slate-400">Gelişim İndeksi</div>
+          <div class="text-[9px] text-slate-400 flex items-center justify-center gap-1">
+            Gelişim İndeksi
+            <button onclick="event.stopPropagation(); openInfoModal('devIndex')" class="w-3.5 h-3.5 rounded-full bg-indigo-900/80 text-indigo-300 text-[9px] font-bold hover:bg-indigo-700 hover:text-white transition" title="Nasıl hesaplanır?">i</button>
+          </div>
           <div class="text-sm font-bold text-purple-300 font-mono">${p.dev_tier} (${p.dev_score})</div>
         </div>
         <button onclick="assignScoutPlayerToActiveSlot('${p.name.replace(/'/g, "\\'")}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition">
@@ -843,10 +924,10 @@ function renderPlayerModal(p) {
         <i class="fa-solid fa-id-card mr-1"></i> Genel & Mevkiler %
       </button>
       <button onclick="switchModalTab('radar')" class="px-3 py-1 rounded-lg transition ${scoutActiveModalTab === 'radar' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white'}">
-        <i class="fa-solid fa-chart-pie mr-1"></i> 8 Köşeli Radar & Karşılaştırma
+        <i class="fa-solid fa-chart-pie mr-1"></i> Karşılaştırma
       </button>
       <button onclick="switchModalTab('growth')" class="px-3 py-1 rounded-lg transition ${scoutActiveModalTab === 'growth' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white'}">
-        <i class="fa-solid fa-chart-line mr-1"></i> Gelişim Grafiği (+1/+2)
+        <i class="fa-solid fa-chart-line mr-1"></i> Gelişim Geçmişi
       </button>
     </div>
 
@@ -854,7 +935,7 @@ function renderPlayerModal(p) {
     ${tabContentHtml}
   `;
 }
-// ==================== TAB 2: OCTAGON RADAR & COMPARISON ====================
+// ==================== TAB 2: PLAYER COMPARISON ====================
 function renderModalRadarTab(p) {
     const axes = ["Savunma", "Fiziksel", "Sürat", "Vizyon", "Hücum", "Teknik", "Hava Topu", "Zihinsel"];
     const oct1 = p.octagon || {};
@@ -880,7 +961,7 @@ function renderModalRadarTab(p) {
     }).join("");
     return `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-      <!-- Radar SVG Chart -->
+      <!-- Player comparison chart -->
       <div class="bg-fmDark/90 p-3 rounded-xl border border-indigo-950/80 flex flex-col items-center justify-center">
         <div class="flex items-center justify-between w-full mb-2 text-xs">
           <span class="font-bold text-cyan-400 flex items-center gap-1.5">
@@ -992,7 +1073,7 @@ async function executePlayerComparison() {
             renderPlayerModal(scoutActiveModalPlayer);
         }
         else {
-            alert(`"${nameQuery}" isminde bir oyuncu bulunamadı.`);
+            alert(T(`"${nameQuery}" isminde bir oyuncu bulunamadı.`));
         }
     }
     catch (err) {
@@ -1021,27 +1102,37 @@ function renderModalGrowthTab(p) {
     }
     const positiveBadges = positiveChanges.map(([attr, val]) => `<span class="bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 px-2 py-0.5 rounded text-[11px] font-semibold">${attr} +${val}</span>`).join(" ");
     const negativeBadges = negativeChanges.map(([attr, val]) => `<span class="bg-rose-950/80 text-rose-300 border border-rose-700/60 px-2 py-0.5 rounded text-[11px] font-semibold">${attr} ${val}</span>`).join(" ");
-    // Build SVG Line Chart
     const svgGraph = generateGrowthChartSvg(curve);
+    const caValues = curve.map((entry) => Number(entry.ca));
+    const hasRealProgress = caValues.length >= 2;
     return `
     <div class="space-y-3 mt-3 text-xs">
-      <!-- 5-Point Career Growth Trajectory -->
+      <!-- Real recorded career growth (no synthetic projections) -->
       <div class="bg-fmDark/90 p-3.5 rounded-xl border border-indigo-950/80 space-y-2">
         <div class="flex items-center justify-between">
           <h4 class="font-bold text-cyan-400 flex items-center gap-1.5">
-            <i class="fa-solid fa-chart-line"></i> FM Genie Scout Tarzı Gelişim Eğrisi & Projeksiyonu
+            <i class="fa-solid fa-chart-line"></i> Gelişim Geçmişi <span class="text-[10px] font-normal text-slate-400">(gerçek kayıtlar)</span>
           </h4>
           <button onclick="resetCareerBaseline()" class="px-2.5 py-1 rounded bg-indigo-950 hover:bg-indigo-900 border border-indigo-800 text-[11px] text-cyan-300 font-semibold transition">
-            📌 Bu Kaydı Başlangıç (T0) Yap
+            📌 Ölçüm Başlangıcını Sıfırla
           </button>
         </div>
-        ${svgGraph}
+        <p class="text-[11px] text-slate-400">
+          İlk ölçüm: <b class="text-cyan-300">${p.baseline_date || "-"}</b>
+          · Kayıtlı nokta: <b class="text-slate-200">${curve.length}</b>
+        </p>
+        ${hasRealProgress ? svgGraph : `
+          <div class="text-center text-[11px] text-slate-400 py-5 px-4">
+            ${T("Henüz karşılaştırılacak ikinci ölçüm yok. Oyun içinde ilerleyip kaydı yeniden yükleyin.")}
+            ${T("Kariyer başlangıç tarihi bu kayıt okuyucusundan alınamıyor; geçmiş değerler tahmin edilmez.")}
+          </div>
+        `}
       </div>
 
       <!-- Attribute Changes Since Baseline -->
       <div class="bg-fmDark/90 p-3.5 rounded-xl border border-indigo-950/80 space-y-2">
         <h4 class="font-bold text-slate-200 flex items-center gap-1.5">
-          <i class="fa-solid fa-arrow-trend-up text-emerald-400"></i> Başlangıç Noktasından (T0) Bu Yana Gelişen Nitelikler
+          <i class="fa-solid fa-arrow-trend-up text-emerald-400"></i> İlk Ölçümden Bu Yana Gelişen Nitelikler
         </h4>
         <div class="flex flex-wrap gap-1.5">
           ${positiveBadges || '<span class="text-slate-500 text-[11px]">Henüz pozitif nitelik artışı kaydedilmedi (oyunda birkaç ay ilerleyip save alınca görünecektir).</span>'}
@@ -1062,12 +1153,17 @@ function generateGrowthChartSvg(curve) {
     const h = 130;
     const padX = 60;
     const padY = 25;
-    const minCa = 70;
-    const maxCa = 200;
+    const caValues = curve.map((c) => Number(c.ca));
+    const rawMin = Math.min(...caValues);
+    const rawMax = Math.max(...caValues);
+    const minCa = rawMin === rawMax ? rawMin - 5 : rawMin - 3;
+    const maxCa = rawMin === rawMax ? rawMax + 5 : rawMax + 3;
     const points = curve.map((c, i) => {
-        const x = padX + (i * (w - 2 * padX)) / (curve.length - 1);
-        const caVal = Math.max(minCa, Math.min(maxCa, c.ca));
-        const y = h - padY - ((caVal - minCa) / (maxCa - minCa)) * (h - 2 * padY);
+        const x = curve.length === 1
+            ? w / 2
+            : padX + (i * (w - 2 * padX)) / (curve.length - 1);
+        const caVal = Math.max(minCa, Math.min(maxCa, Number(c.ca)));
+        const y = h - padY - ((caVal - minCa) / Math.max(1, maxCa - minCa)) * (h - 2 * padY);
         return { x, y, label: c.label, ca: c.ca, delta: c.delta };
     });
     const polylinePts = points.map(p => `${p.x},${p.y}`).join(" ");
@@ -1083,7 +1179,7 @@ function generateGrowthChartSvg(curve) {
       <line x1="${padX}" y1="${padY}" x2="${w - padX}" y2="${padY}" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3"/>
       <line x1="${padX}" y1="${h / 2}" x2="${w - padX}" y2="${h / 2}" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3"/>
       <line x1="${padX}" y1="${h - padY}" x2="${w - padX}" y2="${h - padY}" stroke="rgba(255,255,255,0.1)"/>
-      <polyline points="${polylinePts}" fill="none" stroke="url(#growthGradient)" stroke-width="3"/>
+      ${curve.length > 1 ? `<polyline points="${polylinePts}" fill="none" stroke="url(#growthGradient)" stroke-width="3"/>` : ''}
       ${nodesSvg}
       <defs>
         <linearGradient id="growthGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -1099,14 +1195,14 @@ async function resetCareerBaseline() {
     try {
         const res = await fetch("/api/reset-baseline", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
         const data = await res.json();
-        alert(`Mevcut kayıt verileri başlangıç noktası (T0) olarak sabitlendi! (${data.tracked_players} oyuncu takip ediliyor).`);
+        alert(T(`Mevcut kayıt verileri ölçüm başlangıcı olarak kaydedildi! (${data.tracked_players} oyuncu takip ediliyor).`));
         if (scoutActiveModalPlayer) {
             await openScoutPlayerModal(scoutActiveModalPlayer.uid);
         }
         await queryScoutPlayers(scoutPageOffset);
     }
     catch (err) {
-        alert("Başlangıç noktası sabitleme hatası: " + err);
+        alert(T("Başlangıç noktası sabitleme hatası: ") + err);
     }
 }
 function closeScoutPlayerModal() {

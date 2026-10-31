@@ -22,5 +22,5 @@ if %ERRORLEVEL% NEQ 0 (
 if exist "node_modules\electron\dist\electron.exe" (
     "node_modules\electron\dist\electron.exe" .
 ) else (
-    start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --app="http://localhost:8765" --window-size=1360,840
+    start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --app="http://127.0.0.1:8765" --window-size=1360,840
 )

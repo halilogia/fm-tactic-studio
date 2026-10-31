@@ -1,4 +1,3 @@
-"use strict";
 /**
  * FM Tactic Studio & Universal Scout - Canonical FM 26 / FM 27 Fixed Slot Grid & Formations
  */

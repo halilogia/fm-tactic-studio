@@ -13,11 +13,20 @@
 - [x] FM 26 / FM 27 Fixed-Slot (24 canonical slots) drag-and-drop tactical pitch with automatic player swap.
 - [x] Unified `Taktik` and `Scout` top-level tabs with `.fm` save loader and Excel-style inline filterable player database.
 - [x] Dedicated type-and-confirm Club Picker (Kulüp Seçici) with datalist autocomplete and loaned-out/youth player integration.
-- [x] FM Genie Scout Positional Suitability Ratings % (`GK..ST`) and Peak Potential Rating (`PA %`).
+- [x] Positional Suitability Ratings % (`GK..ST`) and Peak Potential Rating (`PA %`).
 - [x] Tactical pitch "Otomatik En İyi 11 Öner" (Auto-Fill Best XI) + Weakest Link detection + 3 Global Transfer Recommendations.
-- [x] 8-Axis SVG Octagon Radar & interactive Player Comparison.
+- [x] Player comparison chart & interactive Player Comparison.
 - [x] Star Shortlist (`⭐`) & persistent observation Scout Notes.
 - [x] Development & Training Speed Index (`S+/A+/A/B/C`).
-- [x] FM Genie Scout Style Baseline Progress Tracker (`T0`) with `+1 / +2` live attribute deltas & SVG growth curve.
+- [x] Recorded Career Progress Tracker (`T0`) with `+1 / +2` live attribute deltas & a chart of real dated observations.
 - [x] Live Save Disk Watcher & 1-click Save Reload (`Kaydı Yenile`).
 - [x] Player Status Colour Coding (`Sakat / Cezalı / Kondisyon Düşük / Kirada / Sözleşme Bitiyor / Serbest`) with badge system.
+- [x] Position Ordering (`GK → ST` / `ST → GK`) sortable from the `Mevki` column header via the `positions_order` rank column.
+- [x] Offline-first startup: local precompiled Tailwind CSS and vendored Font Awesome replace blocking CDNs; lazy-loaded 16 MB snapshot cuts backend import time.
+- [x] Settings panel with appearance (Dark / Light / OLED) and language (TR / EN) controls, persisted in localStorage.
+- [x] Light, dark and OLED theme layers covering surfaces, text, borders, inputs, hover states and the Excel grid.
+- [x] Turkish/English localization for static markup and dynamically rendered tactics, pitch labels, roles, scout statuses and messages.
+- [x] Project relocated to `GitHub/Public/Apps/fm-tactic-studio` with the desktop shortcut retargeted.
+- [x] Academy/youth team identification per club (`U19`, `U18`, `U17`, `Rezerv`, `Altyapı`) inferred from team slots and squad age profiles; badge in the club column, full label in the player modal and CSV export.
+- [x] `Altyapı` filter toggle (`youth_only`) plus youth counts in the club picker and active-club banner.
+- [x] Club picker limit raised from 400 to 5,000 clubs (all clubs with players resolve); optional `FM_PORT` server port override.

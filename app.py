@@ -46,6 +46,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 os.makedirs(os.path.join(BASE_DIR, "dist"), exist_ok=True)
 app.mount("/css", StaticFiles(directory=os.path.join(BASE_DIR, "css")), name="css")
 app.mount("/dist", StaticFiles(directory=os.path.join(BASE_DIR, "dist")), name="dist")
+app.mount("/vendor", StaticFiles(directory=os.path.join(BASE_DIR, "vendor")), name="vendor")
 if os.path.exists(os.path.join(BASE_DIR, "js")):
     app.mount("/js", StaticFiles(directory=os.path.join(BASE_DIR, "js")), name="js")
 
@@ -198,6 +199,10 @@ class RecommendXIRequest(BaseModel):
     slots: list = []
 
 
+class RecommendFormationRequest(BaseModel):
+    club_name: str = ""
+
+
 class ResetBaselineRequest(BaseModel):
     save_ref: Optional[str] = None
 
@@ -228,6 +233,11 @@ def update_shortlist_endpoint(req: ShortlistUpdateRequest):
 @app.post("/api/recommend-xi")
 def recommend_xi_endpoint(req: RecommendXIRequest):
     return scout_engine.recommend_best_xi(req.club_name, req.slots)
+
+
+@app.post("/api/recommend-formation")
+def recommend_formation_endpoint(req: RecommendFormationRequest):
+    return scout_engine.recommend_best_formation(req.club_name)
 
 
 @app.get("/api/compare")
@@ -291,7 +301,7 @@ async def upload_save_file(file: UploadFile = File(...)):
 def get_clubs_list():
     if not scout_engine.is_loaded:
         return {"clubs": []}
-    return {"clubs": scout_engine.db.list_clubs(limit=400)}
+    return {"clubs": scout_engine.db.list_clubs(limit=5000)}
 
 
 @app.get("/api/players")
@@ -319,6 +329,7 @@ def search_players(
     max_contract_year: int = 0,
     free_agents_only: bool = False,
     wonderkids_only: bool = False,
+    youth_only: bool = False,
     shortlist_only: bool = False,
     sort_by: str = "pa",
     sort_order: str = "desc",
@@ -356,6 +367,7 @@ def search_players(
         max_contract_year=max_contract_year,
         free_agents_only=free_agents_only,
         wonderkids_only=wonderkids_only,
+        youth_only=youth_only,
         shortlist_uids=shortlist_uids,
         sort_by=sort_by,
         sort_order=sort_order,
@@ -395,6 +407,7 @@ def export_players_csv(
     min_professionalism: int = 0,
     min_pressure: int = 0,
     wonderkids_only: bool = False,
+    youth_only: bool = False,
     shortlist_only: bool = False,
     sort_by: str = "pa",
     sort_order: str = "desc"
@@ -423,6 +436,7 @@ def export_players_csv(
         min_professionalism=min_professionalism,
         min_pressure=min_pressure,
         wonderkids_only=wonderkids_only,
+        youth_only=youth_only,
         shortlist_uids=shortlist_uids,
         sort_by=sort_by,
         sort_order=sort_order,
@@ -433,7 +447,7 @@ def export_players_csv(
     output.write("\ufeff")  # UTF-8 BOM for Excel Turkish character compatibility
     writer = csv.writer(output, delimiter=";")
     writer.writerow([
-        "UID", "Oyuncu Adı", "Yaş", "Mevkiler", "Kulüp", "Kiralık Durumu", "Sahip Kulüp", "Ülke",
+        "UID", "Oyuncu Adı", "Yaş", "Mevkiler", "Kulüp", "Takım (Yaş Grubu)", "Yaş Grubu", "Kiralık Durumu", "Sahip Kulüp", "Ülke",
         "CA", "PA", "Gelişim Farkı (PA-CA)", "En İyi Mevki", "Mevki Uygunluk %", "Potansiyel %",
         "Gelişim İndeksi", "Gelişim Seviyesi",
         "Tutarlılık", "Önemli Maçlar", "Sakatlık Eğilimi", "Çok Yönlülük", "Çirkeflik",
@@ -444,7 +458,9 @@ def export_players_csv(
         is_on_loan_str = "Kirada" if p.get("is_on_loan") else "Kadroda"
         parent_club = p.get("loan_parent_club_name") or p.get("club_name") or "-"
         writer.writerow([
-            p["uid"], p["name"], p["age"], p["positions"], p["club_name"], is_on_loan_str, parent_club, p["nation_name"],
+            p["uid"], p["name"], p["age"], p["positions"], p["club_name"],
+            p.get("team_label") or p["club_name"], p.get("team_level") or "",
+            is_on_loan_str, parent_club, p["nation_name"],
             p["ca"], p["pa"], p["potential_gap"], p.get("best_pos", "-"), f"{p.get('best_rating', 0)}%", f"{p.get('pot_rating', 0)}%",
             p.get("dev_score", 0), p.get("dev_tier", "-"),
             p["consistency"], p["important_matches"], p["injury_proneness"], p["versatility"], p["dirtiness"],
@@ -479,7 +495,8 @@ def index_page():
 
 
 def run_server():
-    uvicorn.run("app:app", host="127.0.0.1", port=8765, reload=False)
+    port = int(os.environ.get("FM_PORT", "8765"))
+    uvicorn.run("app:app", host="127.0.0.1", port=port, reload=False)
 
 
 if __name__ == "__main__":

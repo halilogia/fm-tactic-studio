@@ -1,9 +1,8 @@
-/**
- * Tailwind CSS Theme Configuration for FM Tactic Studio & Universal Scout
- */
-(window as any).tailwind = (window as any).tailwind || {};
-(window as any).tailwind.config = {
+// @ts-mandatory: Tailwind CSS build configuration consumed directly by the Tailwind CLI
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   darkMode: "class",
+  content: ["./index.html", "./src/**/*.ts", "./dist/**/*.js"],
   theme: {
     extend: {
       colors: {

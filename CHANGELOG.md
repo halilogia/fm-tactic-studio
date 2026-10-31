@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.1] - 2026-10-31
+### Fixed
+- Removed hash-generated tactic formations, mentalities and instructions; archive metadata remains available and the UI explains unreadable tactic content.
+- Best positional rating now follows the player's registered positions; raw position values are visible in the player card.
+- Growth history contains only dated observations, including low-CA academy players; same-day reloads replace points and older saves discard future branch points. Baseline reset refreshes the chart immediately.
+- Removed synthetic future growth curves and inferred season-start observations. The reader does not expose the exact career start date, so it is explicitly unavailable.
+- Development index has a TR/EN information dialog explaining the complete formula and its estimated nature. Comparison labels use neutral wording.
+
+## [3.5.0] - 2026-10-31
+### Added
+- **Academy / Youth Team Identification:** Every non-senior team is labelled with an inferred level (`U19`, `U18`, `U17`, `Rezerv`, or `Altyapı` fallback) from the player's registered team slot and the squad's age profile. FM saves do not store team names, so the level is derived per club + slot (reserve/B sides are separated by their older age profile).
+  - The Scout grid shows a badge next to the club name (e.g. `Beşiktaş A.Ş. U19`).
+  - The player detail modal shows the full team label.
+  - CSV export gains `Takım (Yaş Grubu)` and `Yaş Grubu` columns.
+- **Academy Filter:** New `Altyapı` toggle (`youth_only=true`) lists only youth/reserve players. Club picker suggestions and the active-club banner now show youth counts (e.g. `35 Oyuncu • 9 Altyapı`).
+- Deep links: `?tab=scout&club=Beşiktaş&youth=1`.
+
+### Changed
+- Club picker now loads up to 5,000 clubs (all 4,138 clubs with players in the tested save) instead of only the first 400, so clubs such as Beşiktaş resolve correctly.
+- Optional `FM_PORT` environment variable for the local server (default remains 8765).
+
+## [3.4.0] - 2026-10-31
+### Added
+- **Settings Panel:** Gear button in the top bar opens a settings modal with appearance and language controls. Preferences are stored in `localStorage` and applied by an inline bootstrap before the first paint, avoiding theme flashes.
+- **Multiple Themes:** Dark (default), Light and OLED (pure black). `css/themes.css` maps surfaces, text, borders, inputs, hover states, modals, scrollbars and the Excel grid for the light theme, plus a pure-black OLED variant.
+- **TR/EN Localization:** `src/settings.ts` provides a Turkish↔English translator with exact, phrase and composite rules covering static markup as well as dynamically rendered tactics, pitch slot/role labels, scout statuses and messages. Changing the language persists the choice and reloads the app.
+- Deep links for testing/sharing: `?theme=light|dark|oled`, `?lang=tr|en`, `?tab=scout`, `?settings=1`.
+
+### Changed
+- Project moved to `Desktop/GitHub/Public/Apps/fm-tactic-studio`; the desktop shortcut and launcher now target the new location.
+- Removed the obsolete `src/tailwind_theme.ts` / `dist/tailwind_theme.js` (theme config lives in `tailwind.config.js`).
+
+## [3.3.0] - 2026-10-31
+### Changed
+- **Offline-first Startup (render-blocking CDN removal):** The Tailwind Play CDN (`cdn.tailwindcss.com`, measured at ~11.8 s response time) and the Font Awesome CDN were replaced with locally served assets, so the window no longer waits on the network:
+  - Tailwind is precompiled from `css/tailwind.input.css` + `tailwind.config.js` into `dist/tailwind.css` (~35 KB) through the new `npm run build:css` step (also chained into `npm run build`).
+  - Font Awesome 6.5.1 CSS and webfonts are vendored under `vendor/fontawesome/` and served by the new `/vendor` static mount.
+  - Removed the in-browser Tailwind JIT compiler and the obsolete `dist/tailwind_theme.js`.
+- **Faster backend start:** the 16 MB progress snapshot is now lazy-loaded on first use instead of at import time, reducing `scout_engine` import from ~1.07 s to ~0.67 s.
+
+## [3.2.0] - 2026-10-31
+### Added
+- **Mevkiye Göre Sıralama (Position Ordering):** The `Mevki` column header is now clickable and sorts the squad from goalkeeper to striker (`GK → DC → FB → DM → MC → W/AMC → ST`) or in reverse. Backed by a new `positions_order` rank computed per player from their primary natural position, with `CA DESC` as the tie-breaker and server-side SQL ordering.
+
 ## [3.1.0] - 2026-10-31
 ### Added
 - **Player Status Color Coding & Badges:** Player names are now visually colour-coded and badge-annotated based on their real-time status —
@@ -19,12 +63,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.0.0] - 2026-10-31
 ### Added
 - **Dedicated Type-and-Confirm Club Picker (Kulüp Seçici):** Replaced static dropdown with autocomplete datalist input + confirm/clear buttons to instantly filter full club squads including loaned-out (`Kirada`) and promoted youth players.
-- **FM Genie Scout Positional Suitability Ratings % (`GK..ST`):** Precise percentage calculations for all 8 position groups (`GK, DC, FB, DM, MC, W, AMC, ST`) + Peak Potential Rating (`PA %`).
+- **Positional Suitability Ratings % (`GK..ST`):** Precise percentage calculations for all 8 position groups (`GK, DC, FB, DM, MC, W, AMC, ST`) + Peak Potential Rating (`PA %`).
 - **Tactic Pitch "Otomatik En İyi 11 Öner" (Auto-Fill Best XI):** Automatically selects the best squad players for the active tactic's 11 slots, identifies the weakest link position (`En Zayıf Halka`), and recommends 3 global transfer targets from the save.
-- **8-Axis SVG Octagon Radar & Player Comparison:** Interactive polygon comparison overlay (Cyan vs Amber) across 8 attributes (`Savunma, Fiziksel, Sürat, Vizyon, Hücum, Teknik, Hava Topu, Zihinsel`) with side-by-side diff metrics.
+- **Player comparison chart & Player Comparison:** Interactive polygon comparison overlay (Cyan vs Amber) across 8 attributes (`Savunma, Fiziksel, Sürat, Vizyon, Hücum, Teknik, Hava Topu, Zihinsel`) with side-by-side diff metrics.
 - **Shortlist (Takip Listesi) & Scout Notes:** 1-click star bookmarking (`⭐`), shortlist filter toggle, and persistent observation notes with auto-save.
 - **Development & Training Speed Index:** Algorithmic development score (`0-99.0`) and tier badge (`S+, A+, A, B, C`) based on age, professionalism, determination, ambition, and injury proneness.
-- **FM Genie Scout Style Baseline Progress Tracker (+1 / +2):** Career baseline (`T0`) snapshotting with live attribute/CA delta tracking (`+1`, `+2`), plus 5-stage SVG growth trajectory line graph.
+- **Recorded Career Progress Tracker (+1 / +2):** Career baseline (`T0`) snapshotting with live attribute/CA delta tracking (`+1`, `+2`), plus a chart of real dated observations only.
 - **Disk Watcher & Instant Save Live-Reload:** Live file modification watcher that detects in-game saves in FM 27 and displays an interactive reload banner.
 
 ## [2.0.0] - 2026-10-31

@@ -28,7 +28,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SHORTLIST_FILE = os.path.join(BASE_DIR, "shortlist_data.json")
 SNAPSHOTS_FILE = os.path.join(BASE_DIR, "progress_snapshots.json")
 
-# FM Genie Scout Positional Weight Profiles
+# Positional weight profiles
 POSITION_WEIGHTS: Dict[str, List[Tuple[str, float]]] = {
     "GK": [
         ("reflexes", 3.2), ("handling", 2.8), ("one_on_ones", 2.4),
@@ -79,6 +79,102 @@ POSITION_WEIGHTS: Dict[str, List[Tuple[str, float]]] = {
     ]
 }
 
+# GK -> ST ordering buckets used for position sorting in the scout grid.
+POSITION_ORDER_RANKS: Dict[str, int] = {
+    "GK": 0, "DC": 1, "FB": 2, "DM": 3, "MC": 4, "W": 5, "AMC": 5, "ST": 6
+}
+
+# Maps a player's registered position code to the rating profile it belongs to.
+POSITION_RATING_KEY: Dict[str, str] = {
+    "GK": "GK", "DC": "DC", "DL": "FB", "DR": "FB", "WBL": "FB", "WBR": "FB",
+    "DM": "DM", "MC": "MC", "ML": "W", "MR": "W", "AML": "W", "AMR": "W",
+    "AMC": "AMC", "ST": "ST", "STC": "ST", "STCL": "ST", "STCR": "ST",
+}
+
+
+def compute_position_sort_order(all_positions: List[str], best_pos: str) -> int:
+    """Returns a deterministic GK (0) -> ST (6) rank for the player's primary position."""
+    primary = (all_positions[0] if all_positions else best_pos) or ""
+    pos = primary.strip().upper()
+    if pos.startswith("GK"):
+        return 0
+    if pos.startswith("WB"):
+        return 2
+    if pos.startswith("DM"):
+        return 3
+    if pos.startswith("AM"):
+        return 5
+    if pos.startswith("D"):
+        return 1
+    if pos.startswith("M"):
+        return 4
+    if pos.startswith("W"):
+        return 5
+    if pos.startswith("ST") or pos.startswith("F"):
+        return 6
+    return POSITION_ORDER_RANKS.get(best_pos, 4)
+
+
+def _season_start_date(game_date_str: str) -> Optional[str]:
+    """Returns the season start (1 July) of the save's in-game date as ISO text."""
+    try:
+        game_date = datetime.date.fromisoformat(str(game_date_str)[:10])
+    except (TypeError, ValueError):
+        return None
+    year = game_date.year if game_date.month >= 7 else game_date.year - 1
+    return f"{year}-07-01"
+
+
+def _format_date_tr(date_str: str) -> str:
+    try:
+        return datetime.date.fromisoformat(str(date_str)[:10]).strftime("%d.%m.%Y")
+    except (TypeError, ValueError):
+        return str(date_str)
+
+
+def _percentile(values: List[int], q: float) -> int:
+    ordered = sorted(values)
+    idx = min(len(ordered) - 1, max(0, int(round((len(ordered) - 1) * q))))
+    return ordered[idx]
+
+
+def _trimmed_mean(values: List[int]) -> float:
+    ordered = sorted(values)
+    cut = int(len(ordered) * 0.1)
+    trimmed = ordered[cut: len(ordered) - cut] or ordered
+    return sum(trimmed) / len(trimmed)
+
+
+def compute_team_levels(team_ages: Dict[Tuple[str, int], List[int]]) -> Dict[Tuple[str, int], str]:
+    """Infers a youth level (U19/U18/U17) or reserve label for every non-senior team.
+
+    The save does not store team names. A club's own team slots are listed in order, and the
+    oldest reserve/B sides can be separated from the youth ladder by their age profile.
+    """
+    by_club: Dict[str, List[int]] = {}
+    for (club, slot) in team_ages:
+        by_club.setdefault(club, []).append(slot)
+
+    levels: Dict[Tuple[str, int], str] = {}
+    for club, slots in by_club.items():
+        slots.sort()
+        youth_slots: List[int] = []
+        for slot in slots:
+            ages = [a for a in team_ages.get((club, slot), []) if a and a > 0]
+            if len(ages) < 3:
+                levels[(club, slot)] = "Altyapı"
+                continue
+            if _percentile(ages, 0.75) >= 21 or _trimmed_mean(ages) >= 20.0:
+                levels[(club, slot)] = "Rezerv"
+            else:
+                youth_slots.append(slot)
+
+        ladder = ["U19", "U18", "U17", "U16"]
+        for idx, slot in enumerate(youth_slots):
+            levels[(club, slot)] = ladder[idx] if idx < len(ladder) else "Altyapı"
+
+    return levels
+
 
 def compute_positional_ratings(
     attr_dict: Dict[str, int],
@@ -87,7 +183,7 @@ def compute_positional_ratings(
     consistency: int,
     important_matches: int
 ) -> Tuple[Dict[str, float], str, float, float]:
-    """Calculates FM Genie Scout style Positional Ratings (%) and Peak Potential Rating (%)."""
+    """Calculates positional ratings (%) and peak potential rating (%)."""
     ratings: Dict[str, float] = {}
     hidden_bonus = ((consistency - 10) * 0.22) + ((important_matches - 10) * 0.18)
     ca_bonus = (ca / 200.0) * 8.0
@@ -126,7 +222,7 @@ def compute_development_index(
     injury_proneness: int
 ) -> Tuple[float, str]:
     """
-    Computes FM Genie Scout style Training & Development Speed Index (0-99.0) and Tier (S+, A+, A, B, C).
+    Computes the training & development speed index (0-99.0) and tier (S+, A+, A, B, C).
     """
     gap = max(0, pa - ca)
     if gap <= 0 or age >= 33:
@@ -166,7 +262,7 @@ def compute_development_index(
 
 
 def compute_octagon_scores(attr_dict: Dict[str, int], is_gk: bool = False) -> Dict[str, float]:
-    """Generates 8-axis polygon/radar attributes for in-depth player comparison (0-20 scale)."""
+    """Generates 8-axis comparison attributes for in-depth player comparison (0-20 scale)."""
     def avg(keys: List[str]) -> float:
         vals = [attr_dict.get(k, 10) for k in keys if k in attr_dict]
         return round(sum(vals) / len(vals), 1) if vals else 10.0
@@ -281,6 +377,10 @@ class ScoutDatabase:
                 nation_name TEXT,
                 positions TEXT,
                 natural_positions TEXT,
+                positions_order INTEGER,
+                team_slot INTEGER,
+                team_level TEXT,
+                team_label TEXT,
                 left_foot INTEGER,
                 right_foot INTEGER,
                 height_cm INTEGER,
@@ -333,7 +433,7 @@ class ScoutDatabase:
                 uid, name, age, ca, pa, potential_gap, ca_delta,
                 best_rating, pot_rating, best_pos, dev_score, dev_tier,
                 club_name, loan_parent_club_name, contract_club_name, is_on_loan, nation_name,
-                positions, natural_positions, left_foot, right_foot,
+                positions, natural_positions, positions_order, team_slot, team_level, team_label, left_foot, right_foot,
                 height_cm, transfer_value, wage, contract_end_year, contract_end_str,
                 status_code, status_label,
                 consistency, important_matches,
@@ -344,7 +444,7 @@ class ScoutDatabase:
                 :uid, :name, :age, :ca, :pa, :potential_gap, :ca_delta,
                 :best_rating, :pot_rating, :best_pos, :dev_score, :dev_tier,
                 :club_name, :loan_parent_club_name, :contract_club_name, :is_on_loan, :nation_name,
-                :positions, :natural_positions, :left_foot, :right_foot,
+                :positions, :natural_positions, :positions_order, :team_slot, :team_level, :team_label, :left_foot, :right_foot,
                 :height_cm, :transfer_value, :wage, :contract_end_year, :contract_end_str,
                 :status_code, :status_label,
                 :consistency, :important_matches,
@@ -360,7 +460,9 @@ class ScoutDatabase:
         cursor = self.conn.cursor()
         # Include clubs where players are currently playing or owned
         cursor.execute("""
-            SELECT club_name, COUNT(*) as player_count, ROUND(AVG(ca), 1) as avg_ca, MAX(pa) as max_pa
+            SELECT club_name, COUNT(*) as player_count,
+                   SUM(CASE WHEN team_level != '' THEN 1 ELSE 0 END) as youth_count,
+                   ROUND(AVG(ca), 1) as avg_ca, MAX(pa) as max_pa
             FROM players
             WHERE club_name != '' AND club_name NOT LIKE '%Serbest%'
             GROUP BY club_name
@@ -394,6 +496,7 @@ class ScoutDatabase:
         max_contract_year: int = 0,
         free_agents_only: bool = False,
         wonderkids_only: bool = False,
+        youth_only: bool = False,
         shortlist_uids: Optional[List[int]] = None,
         sort_by: str = "pa",
         sort_order: str = "desc",
@@ -439,6 +542,9 @@ class ScoutDatabase:
         if wonderkids_only:
             where_clauses.append("age <= 21 AND pa >= 150")
 
+        if youth_only:
+            where_clauses.append("team_level != ''")
+
         if free_agents_only:
             where_clauses.append("club_name LIKE '%Serbest%'")
 
@@ -481,10 +587,12 @@ class ScoutDatabase:
             "dirtiness": "dirtiness", "ambition": "ambition",
             "professionalism": "professionalism", "pressure": "pressure",
             "loyalty": "loyalty", "transfer_value": "transfer_value",
-            "wage": "wage", "contract_end_year": "contract_end_year"
+            "wage": "wage", "contract_end_year": "contract_end_year",
+            "positions_order": "positions_order"
         }
         safe_sort = allowed_sorts.get(sort_by.lower(), "pa")
         safe_order = "ASC" if sort_order.lower() == "asc" else "DESC"
+        order_sql = f"positions_order {safe_order}, ca DESC" if safe_sort == "positions_order" else f"{safe_sort} {safe_order}"
 
         cursor = self.conn.cursor()
         count_sql = f"SELECT COUNT(*) FROM players WHERE {where_sql}"
@@ -495,7 +603,7 @@ class ScoutDatabase:
             SELECT uid, name, age, ca, pa, potential_gap, ca_delta,
                    best_rating, pot_rating, best_pos, dev_score, dev_tier,
                    club_name, loan_parent_club_name, contract_club_name, is_on_loan, nation_name,
-                   positions, natural_positions, left_foot, right_foot,
+                   positions, natural_positions, positions_order, team_slot, team_level, team_label, left_foot, right_foot,
                    height_cm, transfer_value, wage, contract_end_year, contract_end_str,
                    status_code, status_label,
                    consistency, important_matches,
@@ -504,7 +612,7 @@ class ScoutDatabase:
                    temperament, controversy, adaptability
             FROM players
             WHERE {where_sql}
-            ORDER BY {safe_sort} {safe_order}
+            ORDER BY {order_sql}
             LIMIT ? OFFSET ?
         """
         query_params = list(params) + [limit, offset]
@@ -532,7 +640,15 @@ class UniversalScoutEngine:
         self.loaded_save_path: Optional[str] = None
         self.loaded_save_mtime: float = 0.0
         self.shortlist: Dict[str, Dict[str, Any]] = self._load_json_file(SHORTLIST_FILE)
-        self.snapshots: Dict[str, Any] = self._load_json_file(SNAPSHOTS_FILE)
+        self._snapshots: Dict[str, Any] = {}
+        self._snapshots_loaded: bool = False
+
+    @property
+    def snapshots(self) -> Dict[str, Any]:
+        if not self._snapshots_loaded:
+            self._snapshots = self._load_json_file(SNAPSHOTS_FILE)
+            self._snapshots_loaded = True
+        return self._snapshots
 
     def _load_json_file(self, path: str) -> Dict[str, Any]:
         if os.path.exists(path):
@@ -649,7 +765,7 @@ class UniversalScoutEngine:
             p["shortlist_note"] = self.shortlist[uid_str]["note"]
         return {"in_shortlist": True, "count": len(self.shortlist), "note": self.shortlist[uid_str]["note"]}
 
-    # ==================== PLAYER COMPARISON (RADAR / OCTAGON) ====================
+    # ==================== PLAYER COMPARISON (8-AXIS) ====================
     def compare_players(self, uid1: int, uid2: int) -> Dict[str, Any]:
         p1 = self.db.get_player_details(uid1)
         p2 = self.db.get_player_details(uid2)
@@ -741,18 +857,7 @@ class UniversalScoutEngine:
                 p_det = self.db.get_player_details(uid)
                 if not p_det:
                     continue
-                pos_list = p_det.get("positions", [])
-                matches_pos = any(
-                    slot_pos in pos_str or pos_str in slot_pos
-                    or (slot_pos == "ST" and "STC" in pos_str)
-                    or (slot_pos == "DM" and "DMC" in pos_str)
-                    for pos_str in pos_list
-                )
-                if slot_pos == "GK" and not matches_pos:
-                    continue
-                score = p_det["positional_ratings"].get(rating_group, 50.0)
-                if matches_pos:
-                    score += 12.0
+                score = self._score_slot_candidate(p_det, slot_pos, rating_group)
                 if score > best_val:
                     best_val = score
                     best_p = p_det
@@ -794,6 +899,167 @@ class UniversalScoutEngine:
             "transfer_targets": transfer_targets
         }
 
+    # ==================== AUTO FORMATION SELECTOR (PLAYER-DRIVEN) ====================
+    FORMATION_TOPOLOGIES: Dict[str, List[Dict[str, str]]] = {
+        "4-2-3-1": [
+            {"slotId": "GK",   "pos": "GK"},   {"slotId": "DL",   "pos": "DL"},
+            {"slotId": "DCL",  "pos": "DC"},   {"slotId": "DC",   "pos": "DC"},
+            {"slotId": "DCR",  "pos": "DC"},   {"slotId": "DMCL", "pos": "DM"},
+            {"slotId": "DMCR", "pos": "DM"},   {"slotId": "AML",  "pos": "AML"},
+            {"slotId": "AMC",  "pos": "AMC"},  {"slotId": "AMR",  "pos": "AMR"},
+            {"slotId": "STC",  "pos": "ST"}
+        ],
+        "4-3-3": [
+            {"slotId": "GK",   "pos": "GK"},   {"slotId": "DL",   "pos": "DL"},
+            {"slotId": "DCL",  "pos": "DC"},   {"slotId": "DC",   "pos": "DC"},
+            {"slotId": "DCR",  "pos": "DC"},   {"slotId": "DMC",  "pos": "DM"},
+            {"slotId": "MCL",  "pos": "MC"},   {"slotId": "MCR",  "pos": "MC"},
+            {"slotId": "AML",  "pos": "AML"},  {"slotId": "AMR",  "pos": "AMR"},
+            {"slotId": "STC",  "pos": "ST"}
+        ],
+        "4-4-2": [
+            {"slotId": "GK",   "pos": "GK"},   {"slotId": "DL",   "pos": "DL"},
+            {"slotId": "DCL",  "pos": "DC"},   {"slotId": "DC",   "pos": "DC"},
+            {"slotId": "DCR",  "pos": "DC"},   {"slotId": "ML",   "pos": "ML"},
+            {"slotId": "MCL",  "pos": "MC"},   {"slotId": "MCR",  "pos": "MC"},
+            {"slotId": "MR",   "pos": "MR"},   {"slotId": "STCL", "pos": "ST"},
+            {"slotId": "STCR", "pos": "ST"}
+        ],
+        "5-2-3": [
+            {"slotId": "GK",   "pos": "GK"},   {"slotId": "WBL",  "pos": "WBL"},
+            {"slotId": "DCL",  "pos": "DC"},   {"slotId": "DC",   "pos": "DC"},
+            {"slotId": "DCR",  "pos": "DC"},   {"slotId": "WBR",  "pos": "WBR"},
+            {"slotId": "MCL",  "pos": "MC"},   {"slotId": "MCR",  "pos": "MC"},
+            {"slotId": "AML",  "pos": "AML"},  {"slotId": "AMR",  "pos": "AMR"},
+            {"slotId": "STC",  "pos": "ST"}
+        ],
+        "3-5-2": [
+            {"slotId": "GK",   "pos": "GK"},   {"slotId": "DCL",  "pos": "DC"},
+            {"slotId": "DC",   "pos": "DC"},   {"slotId": "DCR",  "pos": "DC"},
+            {"slotId": "WBL",  "pos": "WBL"},  {"slotId": "WBR",  "pos": "WBR"},
+            {"slotId": "DMC",  "pos": "DM"},   {"slotId": "MCL",  "pos": "MC"},
+            {"slotId": "MCR",  "pos": "MC"},   {"slotId": "STCL", "pos": "ST"},
+            {"slotId": "STCR", "pos": "ST"}
+        ],
+        "4-1-2-1-2": [
+            {"slotId": "GK",   "pos": "GK"},   {"slotId": "DL",   "pos": "DL"},
+            {"slotId": "DCL",  "pos": "DC"},   {"slotId": "DC",   "pos": "DC"},
+            {"slotId": "DCR",  "pos": "DC"},   {"slotId": "DMC",  "pos": "DM"},
+            {"slotId": "MCL",  "pos": "MC"},   {"slotId": "MCR",  "pos": "MC"},
+            {"slotId": "AMC",  "pos": "AMC"},  {"slotId": "STCL", "pos": "ST"},
+            {"slotId": "STCR", "pos": "ST"}
+        ]
+    }
+
+    def _score_slot_candidate(self, p_det: Dict[str, Any], slot_pos: str, rating_group: str) -> float:
+        """Shared positional suitability scoring used by both Best-XI and formation ranking."""
+        pos_list = p_det.get("positions", [])
+        matches_pos = any(
+            slot_pos in pos_str or pos_str in slot_pos
+            or (slot_pos == "ST" and "STC" in pos_str)
+            or (slot_pos == "DM" and "DMC" in pos_str)
+            for pos_str in pos_list
+        )
+        if slot_pos == "GK" and not matches_pos:
+            return -1.0
+        score = p_det["positional_ratings"].get(rating_group, 50.0)
+        if matches_pos:
+            score += 12.0
+        return score
+
+    def recommend_best_formation(self, club_name: str) -> Dict[str, Any]:
+        """Ranks all 6 canonical formations by how well the club's player pool fills them.
+
+        Returns every formation ranked worst-to-best last with its optimal lineup,
+        so the frontend can both auto-select and let the user compare alternatives.
+        """
+        cursor = self.db.conn.cursor()
+        if club_name and club_name.strip():
+            cursor.execute("""
+                SELECT uid FROM players
+                WHERE (club_name LIKE ? OR loan_parent_club_name LIKE ? OR contract_club_name LIKE ?)
+                ORDER BY ca DESC LIMIT 100
+            """, (f"%{club_name.strip()}%", f"%{club_name.strip()}%", f"%{club_name.strip()}%"))
+        else:
+            cursor.execute("SELECT uid FROM players ORDER BY ca DESC LIMIT 100")
+        candidate_uids = [r[0] for r in cursor.fetchall()]
+
+        # Cache the details once — the same pool is evaluated for all 6 formations
+        pool = {}
+        for uid in candidate_uids:
+            p_det = self.db.get_player_details(uid)
+            if p_det:
+                pool[uid] = p_det
+
+        pos_group_map = {
+            "GK": "GK", "DL": "FB", "DR": "FB", "WBL": "FB", "WBR": "FB",
+            "DC": "DC", "DCL": "DC", "DCR": "DC",
+            "DM": "DM", "DMC": "DM", "DMCL": "DM", "DMCR": "DM",
+            "MC": "MC", "MCL": "MC", "MCR": "MC",
+            "ML": "W", "MR": "W", "AML": "W", "AMR": "W",
+            "AMC": "AMC", "AMCL": "AMC", "AMCR": "AMC",
+            "ST": "ST", "STC": "ST", "STCL": "ST", "STCR": "ST"
+        }
+
+        formation_results = []
+        for fkey, slots in self.FORMATION_TOPOLOGIES.items():
+            used_uids: set = set()
+            lineup = []
+            ratings = []
+            for sl in slots:
+                slot_id = sl["slotId"]
+                slot_pos = sl["pos"]
+                rating_group = pos_group_map.get(slot_id, pos_group_map.get(slot_pos, "MC"))
+
+                best_p = None
+                best_val = -1.0
+                for uid, p_det in pool.items():
+                    if uid in used_uids:
+                        continue
+                    score = self._score_slot_candidate(p_det, slot_pos, rating_group)
+                    if score > best_val:
+                        best_val = score
+                        best_p = p_det
+
+                if best_p:
+                    used_uids.add(best_p["uid"])
+                    actual_rating = best_p["positional_ratings"].get(rating_group, best_p["best_rating"])
+                    entry = {
+                        "slotId": slot_id, "pos": slot_pos,
+                        "uid": best_p["uid"], "name": best_p["name"],
+                        "ca": best_p["ca"], "pa": best_p["pa"],
+                        "slot_rating": actual_rating
+                    }
+                    lineup.append(entry)
+                    ratings.append(actual_rating)
+
+            if not ratings:
+                continue
+            weakest_idx = ratings.index(min(ratings))
+            formation_results.append({
+                "name": fkey,
+                "avg_slot_rating": round(sum(ratings) / len(ratings), 1),
+                "worst_slot_rating": round(min(ratings), 1),
+                "total_fit": round(sum(ratings), 1),
+                "weakest_link": {
+                    "slotId": lineup[weakest_idx]["slotId"],
+                    "pos": lineup[weakest_idx]["pos"],
+                    "name": lineup[weakest_idx]["name"],
+                    "rating": lineup[weakest_idx]["slot_rating"]
+                } if lineup else None,
+                "lineup": lineup
+            })
+
+        formation_results.sort(key=lambda f: (f["avg_slot_rating"], f["worst_slot_rating"]), reverse=True)
+        best = formation_results[0] if formation_results else None
+
+        return {
+            "club_name": club_name,
+            "formations": formation_results,
+            "best_choice": best["name"] if best else None,
+            "best_lineup": best["lineup"] if best else []
+        }
+
     # ==================== BASELINE PROGRESS & DEVELOPMENT TRACKER ====================
     def _career_key(self, save_path: str) -> str:
         base = os.path.basename(save_path).lower()
@@ -815,12 +1081,22 @@ class UniversalScoutEngine:
             }
         self.snapshots[ckey] = {
             "baseline_date": self.active_save_info.get("game_date", "Başlangıç"),
-            "players": baseline_players
+            "players": baseline_players,
+            "recorded_at": self.active_save_info["game_date"],
+            "history": {uid: [{"date": self.active_save_info["game_date"], "ca": p["ca"]}]
+                        for uid, p in baseline_players.items()}
         }
         self._save_json_file(SNAPSHOTS_FILE, self.snapshots)
         for uid, p in self.db.player_details_cache.items():
             p["ca_delta"] = 0
             p["attr_deltas"] = {k: 0 for k in p["attributes"]}
+            p["baseline_ca"] = p["ca"]
+            p["baseline_date"] = _format_date_tr(self.active_save_info["game_date"])
+            p["ca_history"] = [{"date": self.active_save_info["game_date"], "ca": p["ca"]}]
+            p["dev_curve"] = [{"label": p["baseline_date"], "ca": p["ca"], "delta": 0}]
+        with self.db.conn:
+            self.db.conn.execute("UPDATE players SET ca_delta = 0")
+        self.active_save_info["baseline_date"] = _format_date_tr(self.active_save_info["game_date"])
         return {"status": "ok", "baseline_date": self.snapshots[ckey]["baseline_date"], "tracked_players": len(baseline_players)}
 
     def list_local_saves(self) -> List[Dict[str, Any]]:
@@ -905,19 +1181,45 @@ class UniversalScoutEngine:
 
         with fmsave.open(save_path, strict=False) as save:
             info = save.info
-            game_date_str = str(getattr(info, "game_date", "2026-07-01"))
+            game_date = getattr(info, "game_date", None)
+            if game_date is None:
+                raise ValueError("Kayıttaki oyun tarihi okunamadı; gelişim ölçümü kaydedilmedi.")
+            game_date_str = datetime.date.fromisoformat(str(game_date)).isoformat()
+            # Baselines are dated observations, never inferred season-start values.
+            baseline_date = (
+                existing_baseline.get("baseline_date", game_date_str)
+                if existing_baseline else game_date_str
+            )
+            history_store: Dict[str, List[Dict[str, Any]]] = (
+                existing_baseline.get("history", {}) if existing_baseline else {}
+            )
+            history_dirty = False
             self.active_save_info = {
                 "file_name": os.path.basename(save_path),
                 "game": getattr(info, "game", "Football Manager 26/27"),
                 "build": getattr(info, "build", "Unknown"),
                 "game_date": game_date_str,
+                "career_start_date": None,
                 "career_key": career_key,
-                "baseline_date": existing_baseline["baseline_date"] if existing_baseline else game_date_str,
+                "baseline_date": _format_date_tr(baseline_date),
+                "baseline_recorded_at": (
+                    existing_baseline.get("recorded_at", game_date_str)
+                    if existing_baseline else game_date_str
+                ),
                 "loaded_at": datetime.datetime.now().strftime("%H:%M:%S")
             }
 
             all_players = save.players()
             total_extracted = len(all_players)
+
+            team_ages: Dict[Tuple[str, int], List[int]] = {}
+            for p in all_players:
+                slot = getattr(p, "team_slot", None)
+                p_club = getattr(p, "club_name", "") or ""
+                if slot is None or slot <= 0 or not p_club:
+                    continue
+                team_ages.setdefault((p_club, slot), []).append(p.age or 0)
+            team_levels = compute_team_levels(team_ages)
 
             # Build status lookup dictionaries from global save injury & suspension tables
             injured_uids = set()
@@ -954,6 +1256,10 @@ class UniversalScoutEngine:
                 loan_parent = getattr(p, "loan_parent_club_name", "") or ""
                 on_loan = getattr(p, "on_loan", False)
                 is_on_loan = 1 if on_loan else 0
+
+                team_slot = getattr(p, "team_slot", None)
+                team_level = team_levels.get((club_name, team_slot), "") if team_slot else ""
+                team_label = f"{club_name} {team_level}".strip() if team_level else club_name
 
                 contract_obj = getattr(p, "contract", None)
                 c_club = (getattr(contract_obj, "club_name", "") or "") if contract_obj else ""
@@ -1039,37 +1345,55 @@ class UniversalScoutEngine:
                 pos_ratings, best_pos, best_rating, pot_rating = compute_positional_ratings(
                     attr_dict, ca, pa, consistency, important_matches
                 )
+                eligible_keys = {
+                    POSITION_RATING_KEY[pos] for pos in all_pos if pos in POSITION_RATING_KEY
+                }
+                if eligible_keys:
+                    eligible_best = max(eligible_keys, key=lambda key: pos_ratings.get(key, 0.0))
+                    best_pos = eligible_best
+                    best_rating = pos_ratings.get(eligible_best, best_rating)
+                    pot_rating = round(min(99.8, best_rating + max(0, pa - ca) * 0.32), 1)
                 dev_score, dev_tier = compute_development_index(
                     age, ca, pa, professionalism, ambition, determination_val, injury_proneness
                 )
                 is_gk = "GK" in all_pos
                 octagon = compute_octagon_scores(attr_dict, is_gk)
+                positions_order = compute_position_sort_order(all_pos, best_pos)
 
-                # Baseline progress deltas (+1, +2...)
-                ca_delta = 0
-                attr_deltas: Dict[str, int] = {}
-                if existing_baseline and uid_str in existing_baseline.get("players", {}):
-                    base_p = existing_baseline["players"][uid_str]
-                    ca_delta = ca - base_p.get("ca", ca)
-                    base_attrs = base_p.get("attrs", {})
-                    for ak, aval in attr_dict.items():
-                        attr_deltas[ak] = aval - base_attrs.get(ak, aval)
+                # Store every player, including low-CA academy players. Loading an
+                # older save starts a branch from that date instead of showing future data.
+                base_p = (existing_baseline or {}).get("players", {}).get(uid_str)
+                player_baseline_date = (base_p or {}).get("date", baseline_date)
+                if not base_p or player_baseline_date >= game_date_str:
+                    base_p = {"ca": ca, "attrs": attr_dict, "date": game_date_str}
+                    player_baseline_date = game_date_str
+                    new_baseline_players[uid_str] = base_p
+                    hist = []
                 else:
-                    for ak in attr_dict:
-                        attr_deltas[ak] = 0
-                    if len(new_baseline_players) < 15000 and ca >= 95:
-                        new_baseline_players[uid_str] = {"ca": ca, "attrs": attr_dict}
+                    hist = [entry for entry in history_store.get(uid_str, [])
+                            if player_baseline_date <= entry.get("date", "") <= game_date_str]
+                    if not hist:
+                        hist = [{"date": player_baseline_date, "ca": base_p["ca"]}]
+                ca_delta = ca - base_p["ca"]
+                attr_deltas = {key: value - base_p.get("attrs", {}).get(key, value)
+                               for key, value in attr_dict.items()}
+                # Same-day reloads replace the observation; they do not create duplicates.
+                hist = [entry for entry in hist if entry["date"] != game_date_str]
+                hist.append({"date": game_date_str, "ca": ca})
+                hist.sort(key=lambda entry: entry["date"])
+                ca_history = hist[-24:]
+                history_store[uid_str] = ca_history
+                history_dirty = True
 
-                # 5-stage development projection
-                base_ca_point = ca - ca_delta
-                step1 = min(pa, round(ca + (pa - ca) * (dev_score / 220.0)))
-                step2 = min(pa, round(step1 + (pa - step1) * (dev_score / 180.0)))
+                # Only real recorded snapshots, no synthetic future projections.
+                baseline_ca = ca - ca_delta
                 dev_curve = [
-                    {"label": "Başlangıç (T0)", "ca": base_ca_point, "delta": 0},
-                    {"label": "Mevcut", "ca": ca, "delta": ca_delta},
-                    {"label": "+1 Sezon", "ca": step1, "delta": step1 - base_ca_point},
-                    {"label": "+2 Sezon", "ca": step2, "delta": step2 - base_ca_point},
-                    {"label": "Zirve (PA)", "ca": pa, "delta": pa - base_ca_point}
+                    {
+                        "label": _format_date_tr(entry.get("date", "")),
+                        "ca": entry.get("ca", ca),
+                        "delta": entry.get("ca", ca) - baseline_ca
+                    }
+                    for entry in ca_history
                 ]
 
                 self.db.player_details_cache[uid] = {
@@ -1088,6 +1412,9 @@ class UniversalScoutEngine:
                     "dev_tier": dev_tier,
                     "octagon": octagon,
                     "dev_curve": dev_curve,
+                    "baseline_ca": baseline_ca,
+                    "baseline_date": _format_date_tr(player_baseline_date),
+                    "ca_history": ca_history,
                     "attr_deltas": attr_deltas,
                     "in_shortlist": uid_str in self.shortlist,
                     "shortlist_note": self.shortlist.get(uid_str, {}).get("note", ""),
@@ -1101,6 +1428,27 @@ class UniversalScoutEngine:
                     "nation_name": nation_name,
                     "positions": all_pos,
                     "natural_positions": nat_pos,
+                    "source_game": self.active_save_info["game"],
+                    "position_ratings_raw": {
+                        "gk": getattr(p.positions, "gk", 0) if hasattr(p, "positions") else 0,
+                        "dc": getattr(p.positions, "dc", 0) if hasattr(p, "positions") else 0,
+                        "dl": getattr(p.positions, "dl", 0) if hasattr(p, "positions") else 0,
+                        "dr": getattr(p.positions, "dr", 0) if hasattr(p, "positions") else 0,
+                        "wbl": getattr(p.positions, "wbl", 0) if hasattr(p, "positions") else 0,
+                        "wbr": getattr(p.positions, "wbr", 0) if hasattr(p, "positions") else 0,
+                        "dm": getattr(p.positions, "dm", 0) if hasattr(p, "positions") else 0,
+                        "mc": getattr(p.positions, "mc", 0) if hasattr(p, "positions") else 0,
+                        "ml": getattr(p.positions, "ml", 0) if hasattr(p, "positions") else 0,
+                        "mr": getattr(p.positions, "mr", 0) if hasattr(p, "positions") else 0,
+                        "amc": getattr(p.positions, "amc", 0) if hasattr(p, "positions") else 0,
+                        "aml": getattr(p.positions, "aml", 0) if hasattr(p, "positions") else 0,
+                        "amr": getattr(p.positions, "amr", 0) if hasattr(p, "positions") else 0,
+                        "stc": getattr(p.positions, "stc", 0) if hasattr(p, "positions") else 0,
+                    },
+                    "positions_order": positions_order,
+                    "team_slot": team_slot,
+                    "team_level": team_level,
+                    "team_label": team_label,
                     "left_foot": left_foot,
                     "right_foot": right_foot,
                     "height_cm": height_cm,
@@ -1148,6 +1496,10 @@ class UniversalScoutEngine:
                     "nation_name": nation_name,
                     "positions": ",".join(all_pos),
                     "natural_positions": ",".join(nat_pos),
+                    "positions_order": positions_order,
+                    "team_slot": team_slot,
+                    "team_level": team_level,
+                    "team_label": team_label,
                     "left_foot": left_foot,
                     "right_foot": right_foot,
                     "height_cm": height_cm,
@@ -1178,9 +1530,17 @@ class UniversalScoutEngine:
 
             if not existing_baseline and new_baseline_players:
                 self.snapshots[career_key] = {
-                    "baseline_date": game_date_str,
-                    "players": new_baseline_players
+                    "baseline_date": baseline_date,
+                    "recorded_at": game_date_str,
+                    "players": new_baseline_players,
+                    "history": history_store
                 }
+                self._save_json_file(SNAPSHOTS_FILE, self.snapshots)
+            elif existing_baseline and history_dirty:
+                existing_baseline["players"].update(new_baseline_players)
+                existing_baseline["history"] = history_store
+                existing_baseline["baseline_date"] = baseline_date
+                existing_baseline["recorded_at"] = existing_baseline.get("recorded_at", game_date_str)
                 self._save_json_file(SNAPSHOTS_FILE, self.snapshots)
 
             return {

@@ -1,53 +1,7 @@
 import os
 import struct
-import hashlib
 import datetime
 import zstandard as zstd
-
-FORMATION_CYCLE = [
-    "4-2-3-1",
-    "4-3-3",
-    "4-4-2",
-    "5-2-3",
-    "3-5-2",
-    "4-1-2-1-2"
-]
-
-MENTALITY_CYCLE = [
-    "Pozitif Futbol",
-    "Hücumcu",
-    "Dengeli",
-    "Çok Hücumcu",
-    "Savunmacı",
-    "Çok Savunmacı"
-]
-
-IN_POSSESSION_PRESETS = [
-    {"width": "Oldukça Geniş", "passing": "Kısa Pas", "tempo": "Yüksek Tempo", "play_out": "Kısa Pasla Çık"},
-    {"width": "Standart", "passing": "Daha Kısa Pas", "tempo": "Çok Yüksek Tempo", "play_out": "Beklere Oyna"},
-    {"width": "Geniş", "passing": "Doğrudan Pas", "tempo": "Yüksek Tempo", "play_out": "Kanatlara Oyna"},
-    {"width": "Dar", "passing": "Kısa Pas", "tempo": "Standart Tempo", "play_out": "Merkezden Çık"},
-    {"width": "Standart", "passing": "Karışık Pas", "tempo": "Daha Yüksek Tempo", "play_out": "Kısa Pasla Çık"},
-    {"width": "Çok Dar", "passing": "Kısa Pas", "tempo": "Yüksek Tempo", "play_out": "Merkezden Çık"}
-]
-
-TRANSITION_PRESETS = [
-    {"lose_ball": "Karşı Pres Yap", "win_ball": "Kontraya Kalk", "gk_dist": "Beklere / Stopere"},
-    {"lose_ball": "Karşı Pres Yap", "win_ball": "Hızlıca Oyna", "gk_dist": "Kısa Elle Başlat"},
-    {"lose_ball": "Dizilişi Koru", "win_ball": "Kontraya Kalk", "gk_dist": "Kanatlara Uzun"},
-    {"lose_ball": "Karşı Pres Yap", "win_ball": "Topu Tut", "gk_dist": "Oyun Kurucuya"},
-    {"lose_ball": "Dizilişi Koru", "win_ball": "Kontraya Kalk", "gk_dist": "Beklere / Stopere"},
-    {"lose_ball": "Karşı Pres Yap", "win_ball": "Kontraya Kalk", "gk_dist": "Stoperlere Yuvarla"}
-]
-
-OUT_POSSESSION_PRESETS = [
-    {"def_line": "Daha İleride", "loa": "Önde Karşıla", "pressing": "Çok Sık Pres", "offside": "Aktif"},
-    {"def_line": "Çok Daha İleride", "loa": "Çok Önde", "pressing": "Aşırı Sık Pres", "offside": "Aktif"},
-    {"def_line": "Standart", "loa": "Orta Blok", "pressing": "Daha Sık Pres", "offside": "Standart"},
-    {"def_line": "Daha Geride", "loa": "Alçak Blok", "pressing": "Standart Pres", "offside": "Pasif"},
-    {"def_line": "Daha İleride", "loa": "Orta Blok", "pressing": "Daha Sık Pres", "offside": "Aktif"},
-    {"def_line": "Standart", "loa": "Önde Karşıla", "pressing": "Çok Sık Pres", "offside": "Aktif"}
-]
 
 def parse_fmf_file(file_path):
     with open(file_path, "rb") as f:
@@ -86,13 +40,8 @@ def parse_fmf_file(file_path):
         except Exception as e:
             toc_items = [{"error": str(e)}]
 
-    # Derive deterministic tactic profile from encrypted payload + TAC uncompressed size
-    digest = hashlib.sha256(data).digest()
-    tac_uncomp = tac_info["uncompressed_size"] if tac_info else file_size
-    profile_idx = (digest[0] + tac_uncomp) % len(FORMATION_CYCLE)
-    ment_idx = (digest[1] + file_size) % len(MENTALITY_CYCLE)
-    inst_idx = (digest[2] + tac_uncomp) % len(IN_POSSESSION_PRESETS)
-
+    # The .tac payload is encrypted (AFE). Do not invent formation, mentality or
+    # instructions from a hash: report exactly what could be verified from the archive.
     return {
         "file_name": os.path.basename(file_path),
         "file_path": file_path,
@@ -106,14 +55,16 @@ def parse_fmf_file(file_path):
         "tac_info": tac_info,
         "image_info": image_info,
         "details_info": details_info,
-        "detected_formation": FORMATION_CYCLE[profile_idx],
-        "detected_mentality": MENTALITY_CYCLE[ment_idx],
-        "detected_instructions": {
-            "in_possession": IN_POSSESSION_PRESETS[inst_idx],
-            "transition": TRANSITION_PRESETS[inst_idx],
-            "out_of_possession": OUT_POSSESSION_PRESETS[inst_idx]
-        },
-        "status": "Çözümlendi (Verified)" if toc_items else "Ayrıştırılamadı"
+        "detected_formation": None,
+        "detected_mentality": None,
+        "detected_instructions": None,
+        "instructions_available": False,
+        "instructions_note": (
+            "Takım talimatları .fmf içindeki şifreli .tac dosyasında saklanıyor; uygulama bu içeriği okuyamıyor."
+            if tac_info else
+            ".fmf içinde okunabilir bir .tac dosyası bulunamadı."
+        ),
+        "status": "Arşiv çözümlendi (talimatlar şifreli)" if toc_items else "Ayrıştırılamadı"
     }
 
 def parse_toc(toc_bytes):

@@ -37,6 +37,10 @@ wheels/
 .installed.cfg
 *.egg
 
+# Local inspection reports (may contain personal save paths)
+_inspect_*_tmp.py
+_*_report.txt
+
 # Uploads and temporary data
 uploads/
 *.tmp

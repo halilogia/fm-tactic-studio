@@ -311,16 +311,12 @@ function stopDrag(): void {
 }
 
 let activeBestXiLineup: any[] = [];
+let activeFormationRanking: any[] = [];
 
 async function requestAutoBestXI(): Promise<void> {
   const clubInput = document.getElementById("scoutClubInput") as HTMLInputElement | null;
   const colClubInput = document.getElementById("colFilterClub") as HTMLInputElement | null;
   let targetClub = (clubInput && clubInput.value.trim()) || (colClubInput && colClubInput.value.trim()) || "Beşiktaş A.Ş.";
-
-  const slotsPayload = currentPlayers.map((p) => ({
-    slotId: p.slotId,
-    pos: p.pos
-  }));
 
   const modal = document.getElementById("bestXiModal");
   const clubTitle = document.getElementById("bestXiModalClub");
@@ -329,27 +325,117 @@ async function requestAutoBestXI(): Promise<void> {
   if (modal) modal.classList.remove("hidden");
   if (clubTitle) clubTitle.innerText = targetClub;
   if (content) {
-    content.innerHTML = `<div class="py-12 text-center text-slate-400 text-xs"><i class="fa-solid fa-spinner fa-spin text-xl text-amber-400 mb-2 block"></i> ${targetClub} kadrosu taranıyor ve en iyi 11 hesaplanıyor...</div>`;
+    content.innerHTML = `<div class="py-12 text-center text-slate-400 text-xs"><i class="fa-solid fa-spinner fa-spin text-xl text-amber-400 mb-2 block"></i> ${targetClub} kadrosu taranıyor, 6 diziliş simüle ediliyor...</div>`;
   }
 
   try {
-    const res = await fetch("/api/recommend-xi", {
+    // Step 1: Rank all 6 formations against this club's player pool
+    const fRes = await fetch("/api/recommend-formation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        club_name: targetClub,
-        slots: slotsPayload
-      })
+      body: JSON.stringify({ club_name: targetClub })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "11 önerisi alınamadı");
+    const fData = await fRes.json();
+    if (!fRes.ok) throw new Error(fData.detail || T("Formasyon analizi alınamadı"));
 
-    activeBestXiLineup = data.lineup || [];
-    renderBestXiModalContent(data);
+    activeFormationRanking = fData.formations || [];
+    renderFormationComparison(fData);
+
+    // Step 2: Auto-load the winner's XI into the modal preview
+    if (fData.best_choice && fData.best_lineup) {
+      activeBestXiLineup = fData.best_lineup;
+      renderBestXiModalContent({
+        club_name: targetClub,
+        lineup: fData.best_lineup,
+        weakest_link: (fData.formations && fData.formations[0]) ? fData.formations[0].weakest_link : null,
+        transfer_targets: []
+      });
+    }
   } catch (err: any) {
     if (content) {
       content.innerHTML = `<div class="py-6 text-center text-rose-400 text-xs">Hata: ${err.message || err}</div>`;
     }
+  }
+}
+
+function renderFormationComparison(data: any): void {
+  const content = document.getElementById("bestXiModalContent");
+  if (!content) return;
+
+  const formations = data.formations || [];
+  const best = data.best_choice;
+
+  const cards = formations.map((f: any, idx: number) => {
+    const isBest = f.name === best;
+    const rankColors = ["bg-amber-500", "bg-cyan-500", "bg-indigo-500"];
+    return `
+      <button onclick="selectFormationCandidate('${f.name}')" class="text-left bg-fmDark/90 p-3 rounded-xl border ${isBest ? 'border-amber-400 ring-1 ring-amber-400/50' : 'border-indigo-900 hover:border-cyan-500/60'} transition">
+        <div class="flex items-center justify-between mb-1.5">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full ${rankColors[idx] || 'bg-slate-600'} text-white text-[10px] font-bold flex items-center justify-center">${idx + 1}</span>
+            <span class="font-bold text-white text-sm">${f.name}</span>
+            ${isBest ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold border border-amber-500/50">AI SEÇİMİ</span>' : ''}
+          </div>
+          <span class="font-mono font-bold text-emerald-400 text-xs">%${f.avg_slot_rating}</span>
+        </div>
+        <div class="flex items-center justify-between text-[10px]">
+          <span class="text-slate-400">En zayıf: ${f.weakest_link ? `${f.weakest_link.slotId} • %${f.worst_slot_rating}` : '-'}</span>
+          <span class="text-cyan-400 font-bold hover:underline">Detaylandır ←</span>
+        </div>
+      </button>
+    `;
+  }).join("");
+
+  const banner = `
+    <div class="bg-indigo-950/50 border border-indigo-800 rounded-xl p-3">
+      <div class="flex items-center gap-2 text-xs font-bold text-cyan-300 mb-1">
+        <i class="fa-solid fa-chess-board"></i>
+        <span>Formasyon Sıralaması — Oyuncu Havuzuna Göre</span>
+      </div>
+      <p class="text-[11px] text-slate-300">6 diziliş ${data.club_name || 'kadro'} oyuncularıyla simüle edildi. Ortalama mevkî uygunluk puanına göre sıralandı. AI önerisi: <b class="text-amber-400">${best || '-'}</b>. Kart seç → o dizilişin ideal 11'i açılır.</p>
+    </div>
+  `;
+
+  content.innerHTML = banner + `<div class="grid grid-cols-2 md:grid-cols-3 gap-2">${cards}</div>`;
+}
+
+async function selectFormationCandidate(formationKey: string): Promise<void> {
+  const f = activeFormationRanking.find((x: any) => x.name === formationKey);
+  if (!f || !f.lineup) return;
+
+  activeBestXiLineup = f.lineup;
+  renderBestXiModalContent({
+    club_name: f.name,
+    lineup: f.lineup,
+    weakest_link: f.weakest_link,
+    transfer_targets: []
+  });
+
+  // Apply the exact slot topology of the picked formation behind the modal, so "Yerleştir" lands cleanly
+  if (FORMATIONS[formationKey]) {
+    currentPlayers = JSON.parse(JSON.stringify(FORMATIONS[formationKey]));
+    renderPitch();
+  }
+
+  // Refresh global transfer targets for this formation's weakest slot
+  try {
+    const slotsPayload = (f.lineup as any[]).map((p: any) => ({ slotId: p.slotId, pos: p.pos }));
+    const res = await fetch("/api/recommend-xi", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ club_name: "", slots: slotsPayload })
+    });
+    const data = await res.json();
+    if (res.ok && data.transfer_targets) {
+      renderBestXiModalContent({
+        club_name: f.name,
+        lineup: f.lineup,
+        weakest_link: f.weakest_link,
+        transfer_targets: data.transfer_targets
+      });
+    }
+  } catch (err) {
+    // Keep the lineup visible even if target fetch fails
   }
 }
 
@@ -393,7 +479,21 @@ function renderBestXiModalContent(data: any): void {
     </div>
   `).join("");
 
+  const isFormationView = FORMATIONS.hasOwnProperty(data.club_name);
+
   content.innerHTML = `
+    ${isFormationView ? `
+      <button onclick="renderFormationComparison({ formations: activeFormationRanking, best_choice: activeFormationRanking[0] && activeFormationRanking[0].name, club_name: '${data.club_name}' })"
+        class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-800 hover:border-cyan-500/60 rounded-xl text-[11px] font-bold text-cyan-300 hover:text-cyan-200 transition">
+        <i class="fa-solid fa-arrow-left"></i> ${data.club_name} • Diğer Dizilişleri Karşılaştır
+      </button>
+    ` : ''}
+    ${isFormationView ? `
+      <div class="bg-amber-950/30 border border-amber-700/50 rounded-xl p-2.5 text-center">
+        <span class="text-amber-300 text-xs font-bold">Diziliş: ${data.club_name}</span>
+        <span class="text-[10px] text-slate-400 ml-2">— bu kadronun oyuncularına göre en uygun 11 aşağıda</span>
+      </div>
+    ` : ''}
     <!-- 11 Lineup Table -->
     <div class="bg-fmDark/80 rounded-xl border border-indigo-950 overflow-hidden">
       <table class="w-full text-left">
@@ -438,7 +538,13 @@ function applyCurrentBestXi(): void {
     }
   });
   renderPitch();
-  selectPlayer(selectedPlayerIdx);
+  selectPlayer(0);
+  const applyInfo = document.getElementById("applyBestXiInfo");
+  if (applyInfo) {
+    applyInfo.innerText = "11 taktik tahtasına yerleştirildi ✅";
+    applyInfo.classList.remove("hidden");
+    setTimeout(() => applyInfo.classList.add("hidden"), 2500);
+  }
   closeBestXiModal();
 }
 
