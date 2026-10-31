@@ -32,7 +32,6 @@ html, body {
 }
 
 .player-token {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
   cursor: grab;
 }
 
@@ -40,9 +39,13 @@ html, body {
   cursor: grabbing;
 }
 
-.player-token.selected {
+.player-token .player-circle {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.player-token.selected .player-circle {
   transform: scale(1.12);
-  box-shadow: 0 0 15px #06b6d4, 0 0 30px #6366f1;
+  box-shadow: 0 0 14px #06b6d4, 0 0 26px #6366f1;
 }
 
 /* Excel Data Grid Styles */

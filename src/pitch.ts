@@ -5,7 +5,10 @@
 let currentPlayers: PlayerToken[] = JSON.parse(JSON.stringify(FORMATIONS["4-2-3-1"]));
 let selectedPlayerIdx: number = 0;
 let isDragging: boolean = false;
+let hasMovedDuringDrag: boolean = false;
 let dragIdx: number = -1;
+let dragStartClientX: number = 0;
+let dragStartClientY: number = 0;
 let hoveredSlotId: string | null = null;
 let dragGhostX: number = 50;
 let dragGhostY: number = 50;
@@ -16,8 +19,12 @@ function ensurePlayerSlotIds(): void {
       const nearest = findNearestFixedSlot(p.x, p.y);
       p.slotId = nearest.slotId;
       p.pos = nearest.pos;
-      p.x = nearest.x;
-      p.y = nearest.y;
+    }
+    const canonical = FIXED_TACTICAL_SLOTS[p.slotId];
+    if (canonical) {
+      p.x = canonical.x;
+      p.y = canonical.y;
+      p.pos = canonical.pos;
     }
   });
 }
@@ -44,43 +51,47 @@ function renderPitch(): void {
 
   ensurePlayerSlotIds();
 
-  // 1. Render all 24 canonical FM 26/27 fixed tactical slots
   const occupiedBySlot: Record<string, number> = {};
   currentPlayers.forEach((p, idx) => {
     occupiedBySlot[p.slotId] = idx;
   });
 
+  // 1. Render 24 canonical FM 26/27 fixed tactical slots (prominent during drag, subtle when idle & empty)
   const slotsHtml = Object.keys(FIXED_TACTICAL_SLOTS).map((slotKey) => {
     const slot = FIXED_TACTICAL_SLOTS[slotKey];
     const occupantIdx = occupiedBySlot[slot.slotId];
     const isOccupied = occupantIdx !== undefined;
-    const isHovered = isDragging && hoveredSlotId === slot.slotId;
+    const isHovered = isDragging && hasMovedDuringDrag && hoveredSlotId === slot.slotId;
+
+    if (isOccupied && (!isDragging || !hasMovedDuringDrag)) {
+      return "";
+    }
 
     const ringClass = isHovered
       ? (isOccupied
-          ? "border-amber-400 bg-amber-500/30 scale-125 shadow-lg shadow-amber-500/40"
-          : "border-cyan-400 bg-cyan-500/30 scale-125 shadow-lg shadow-cyan-500/40")
-      : (isDragging
-          ? "border-white/35 bg-slate-950/35 opacity-90"
-          : "border-white/15 bg-slate-950/20 opacity-45 hover:opacity-80");
+          ? "border-amber-400 bg-amber-500/35 scale-125 shadow-lg shadow-amber-500/40 opacity-100"
+          : "border-cyan-400 bg-cyan-500/35 scale-125 shadow-lg shadow-cyan-500/40 opacity-100")
+      : (isDragging && hasMovedDuringDrag
+          ? "border-white/40 bg-slate-950/45 opacity-90"
+          : "border-white/15 bg-slate-950/15 opacity-30");
 
     return `
       <div
         data-slot-id="${slot.slotId}"
         style="left: ${slot.x}%; top: ${slot.y}%;"
         title="${slot.slotId} - ${slot.label}"
-        class="tactical-slot absolute -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full border border-dashed flex items-center justify-center transition-all duration-150 pointer-events-none z-10 ${ringClass}"
+        class="tactical-slot absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full border border-dashed flex items-center justify-center transition-all duration-150 pointer-events-none z-10 ${ringClass}"
       >
-        <span class="text-[8px] font-mono font-bold ${isHovered ? 'text-white' : 'text-white/60'}">${slot.slotId}</span>
+        <span class="text-[7px] font-mono font-bold ${isHovered ? 'text-white' : 'text-white/60'}">${slot.slotId}</span>
       </div>
     `;
   }).join("");
 
-  // 2. Render 11 player tokens snapped onto their fixed slots (or following cursor while dragging)
+  // 2. Render 11 player tokens cleanly centered on their canonical slot
   const playersHtml = currentPlayers.map((p, idx) => {
     const isSelected = selectedPlayerIdx === idx;
-    const isBeingDragged = isDragging && dragIdx === idx;
-    const isSwapTarget = isDragging && dragIdx !== idx && hoveredSlotId === p.slotId;
+    const isBeingDragged = isDragging && hasMovedDuringDrag && dragIdx === idx;
+    const isSwapTarget = isDragging && hasMovedDuringDrag && dragIdx !== idx && hoveredSlotId === p.slotId;
 
     const renderX = isBeingDragged ? dragGhostX : p.x;
     const renderY = isBeingDragged ? dragGhostY : p.y;
@@ -89,24 +100,25 @@ function renderPitch(): void {
       <div 
         id="playerNode-${idx}" 
         onmousedown="startDrag(event, ${idx})"
-        onclick="selectPlayer(${idx})" 
         style="left: ${renderX}%; top: ${renderY}%;"
         class="player-token absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-grab ${
-          isBeingDragged ? 'z-40 scale-110 opacity-90 pointer-events-none' : (isSelected ? 'selected z-30' : 'z-20')
+          isBeingDragged ? 'z-40 opacity-90 pointer-events-none' : (isSelected ? 'selected z-30' : 'z-20')
         }"
       >
-        <div class="relative w-11 h-11 rounded-full bg-gradient-to-tr ${
+        <div class="player-circle relative w-11 h-11 rounded-full bg-gradient-to-tr ${
           p.pos === 'GK' ? 'from-amber-600 to-yellow-400' : 'from-indigo-700 to-cyan-500'
         } border-2 ${
-          isSwapTarget ? 'border-amber-400 ring-4 ring-amber-400/50 animate-pulse' : 'border-white/90'
+          isSwapTarget
+            ? 'border-amber-400 ring-4 ring-amber-400/50 animate-pulse'
+            : (isSelected ? 'border-cyan-300 ring-2 ring-cyan-400/60' : 'border-white/90')
         } flex items-center justify-center text-white font-bold text-xs shadow-lg">
           ${p.num}
           <span class="absolute -bottom-1 -right-1 bg-slate-900 border border-slate-700 text-[9px] px-1 rounded font-mono text-cyan-300">
             ${p.duty}
           </span>
         </div>
-        <div class="mt-0.5 bg-slate-900/95 backdrop-blur px-1.5 py-0.5 rounded text-[9px] font-semibold text-white whitespace-nowrap border ${
-          isSwapTarget ? 'border-amber-400 text-amber-300' : 'border-slate-700/70'
+        <div class="mt-1 bg-slate-900/95 backdrop-blur px-1.5 py-0.5 rounded text-[9px] font-semibold text-white whitespace-nowrap border ${
+          isSwapTarget ? 'border-amber-400 text-amber-300' : (isSelected ? 'border-cyan-400/80 text-cyan-200' : 'border-slate-700/70')
         } shadow">
           <span class="text-cyan-300 font-bold">${p.slotId}</span> • ${p.name.length > 12 ? p.name.slice(0, 12) + '.' : p.name}
         </div>
@@ -193,25 +205,36 @@ function applyFormation(formationKey: string): void {
   }
 }
 
-// Fixed-Slot & Swap Drag-and-Drop Mechanics
 function startDrag(e: MouseEvent, idx: number): void {
   e.preventDefault();
   e.stopPropagation();
   isDragging = true;
+  hasMovedDuringDrag = false;
   dragIdx = idx;
-  selectedPlayerIdx = idx;
+  dragStartClientX = e.clientX;
+  dragStartClientY = e.clientY;
   const p = currentPlayers[idx];
   dragGhostX = p.x;
   dragGhostY = p.y;
   hoveredSlotId = p.slotId;
 
+  selectPlayer(idx);
+
   document.addEventListener("mousemove", onDragMove);
   document.addEventListener("mouseup", stopDrag);
-  renderPitch();
 }
 
 function onDragMove(e: MouseEvent): void {
   if (!isDragging || dragIdx === -1) return;
+
+  const dxPx = e.clientX - dragStartClientX;
+  const dyPx = e.clientY - dragStartClientY;
+  if (!hasMovedDuringDrag && (dxPx * dxPx + dyPx * dyPx) < 25) {
+    // Ignore tiny <5px jitter on simple click so token never jumps off its fixed slot
+    return;
+  }
+  hasMovedDuringDrag = true;
+
   const pitch = document.getElementById("pitchWrapper");
   if (!pitch) return;
 
@@ -241,44 +264,44 @@ function onDragMove(e: MouseEvent): void {
 function stopDrag(): void {
   if (!isDragging || dragIdx === -1) return;
 
-  const draggedPlayer = currentPlayers[dragIdx];
-  const targetSlotId = hoveredSlotId || draggedPlayer.slotId;
-  const targetSlot = FIXED_TACTICAL_SLOTS[targetSlotId];
+  if (hasMovedDuringDrag) {
+    const draggedPlayer = currentPlayers[dragIdx];
+    const targetSlotId = hoveredSlotId || draggedPlayer.slotId;
+    const targetSlot = FIXED_TACTICAL_SLOTS[targetSlotId];
 
-  if (targetSlot && draggedPlayer) {
-    const existingIdx = currentPlayers.findIndex((p, i) => i !== dragIdx && p.slotId === targetSlot.slotId);
+    if (targetSlot && draggedPlayer) {
+      const existingIdx = currentPlayers.findIndex((p, i) => i !== dragIdx && p.slotId === targetSlot.slotId);
 
-    if (existingIdx !== -1) {
-      // Occupied slot -> Swap the two players' identities (name & shirt number) while keeping tactical slot structure intact,
-      // OR if dragging to swap slots, swap their slot positions and adapt roles if needed.
-      const otherPlayer = currentPlayers[existingIdx];
-      const tempName = draggedPlayer.name;
-      const tempNum = draggedPlayer.num;
+      if (existingIdx !== -1) {
+        const otherPlayer = currentPlayers[existingIdx];
+        const tempName = draggedPlayer.name;
+        const tempNum = draggedPlayer.num;
 
-      draggedPlayer.name = otherPlayer.name;
-      draggedPlayer.num = otherPlayer.num;
+        draggedPlayer.name = otherPlayer.name;
+        draggedPlayer.num = otherPlayer.num;
 
-      otherPlayer.name = tempName;
-      otherPlayer.num = tempNum;
+        otherPlayer.name = tempName;
+        otherPlayer.num = tempNum;
 
-      selectedPlayerIdx = existingIdx;
-    } else if (draggedPlayer.slotId !== targetSlot.slotId) {
-      // Empty fixed slot -> Move player into that canonical FM 26/27 slot
-      draggedPlayer.slotId = targetSlot.slotId;
-      draggedPlayer.pos = targetSlot.pos;
-      draggedPlayer.x = targetSlot.x;
-      draggedPlayer.y = targetSlot.y;
+        selectedPlayerIdx = existingIdx;
+      } else if (draggedPlayer.slotId !== targetSlot.slotId) {
+        draggedPlayer.slotId = targetSlot.slotId;
+        draggedPlayer.pos = targetSlot.pos;
+        draggedPlayer.x = targetSlot.x;
+        draggedPlayer.y = targetSlot.y;
 
-      const validRoles = ROLES_BY_POS[targetSlot.pos] || [];
-      if (!validRoles.includes(draggedPlayer.role)) {
-        draggedPlayer.role = targetSlot.defaultRole;
-        draggedPlayer.duty = targetSlot.defaultDuty;
+        const validRoles = ROLES_BY_POS[targetSlot.pos] || [];
+        if (!validRoles.includes(draggedPlayer.role)) {
+          draggedPlayer.role = targetSlot.defaultRole;
+          draggedPlayer.duty = targetSlot.defaultDuty;
+        }
+        selectedPlayerIdx = dragIdx;
       }
-      selectedPlayerIdx = dragIdx;
     }
   }
 
   isDragging = false;
+  hasMovedDuringDrag = false;
   dragIdx = -1;
   hoveredSlotId = null;
   document.removeEventListener("mousemove", onDragMove);
