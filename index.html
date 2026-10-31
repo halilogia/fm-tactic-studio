@@ -10,7 +10,7 @@
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <!-- Custom Styles -->
-  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/styles.css?v=1.1.0">
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -31,38 +31,38 @@
     }
   </script>
 </head>
-<body class="bg-fmDark text-slate-100 font-sans min-h-screen flex flex-col overflow-hidden">
+<body class="bg-fmDark text-slate-100 font-sans h-screen w-screen flex flex-col overflow-hidden">
 
   <!-- TOP NAVBAR -->
-  <header class="bg-fmSidebar border-b border-indigo-950/60 px-5 py-3 flex items-center justify-between shrink-0 shadow-lg">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-white text-xl shadow-md shadow-indigo-600/30">
+  <header class="bg-fmSidebar border-b border-indigo-950/60 px-4 py-2 flex items-center justify-between shrink-0 shadow-md">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-white text-base shadow-md shadow-indigo-600/30">
         <i class="fa-solid fa-futbol"></i>
       </div>
       <div>
         <div class="flex items-center gap-2">
-          <h1 class="font-bold text-lg tracking-wide text-white">FM Tactic Studio</h1>
-          <span class="bg-indigo-900/60 text-indigo-300 text-xs px-2 py-0.5 rounded-full font-medium border border-indigo-700/50">FM 2026 Ready</span>
-          <span class="bg-emerald-950/60 text-emerald-400 text-xs px-2 py-0.5 rounded-full font-medium border border-emerald-700/50">Electron Desktop</span>
+          <h1 class="font-bold text-base tracking-wide text-white">FM Tactic Studio</h1>
+          <span class="bg-indigo-900/60 text-indigo-300 text-[10px] px-2 py-0.2 rounded-full font-medium border border-indigo-700/50">FM 2026 Ready</span>
+          <span class="bg-emerald-950/60 text-emerald-400 text-[10px] px-2 py-0.2 rounded-full font-medium border border-emerald-700/50">Electron Desktop</span>
         </div>
-        <p class="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+        <p class="text-[11px] text-slate-400 flex items-center gap-1.5">
           <i class="fa-regular fa-folder-open text-indigo-400"></i>
-          <span id="folderLabel" class="truncate max-w-md text-slate-400">Taktik Klasörü Yükleniyor...</span>
+          <span id="folderLabel" class="truncate max-w-xs md:max-w-md text-slate-400 font-medium">Football Manager 26 \ tactics</span>
         </p>
       </div>
     </div>
 
     <!-- Actions -->
-    <div class="flex items-center gap-3">
-      <button onclick="refreshTactics()" class="px-3.5 py-1.5 bg-indigo-950/80 hover:bg-indigo-900 text-indigo-200 border border-indigo-800/60 rounded-lg text-xs font-medium flex items-center gap-2 transition">
+    <div class="flex items-center gap-2.5">
+      <button onclick="refreshTactics()" class="px-3 py-1 bg-indigo-950/80 hover:bg-indigo-900 text-indigo-200 border border-indigo-800/60 rounded-lg text-xs font-medium flex items-center gap-1.5 transition">
         <i class="fa-solid fa-rotate text-indigo-400" id="refreshIcon"></i> Yenile
       </button>
 
-      <a href="https://sortitoutsi.net/tactics/editor" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg text-xs font-semibold flex items-center gap-2 shadow-md transition">
+      <a href="https://sortitoutsi.net/tactics/editor" target="_blank" rel="noopener noreferrer" class="px-3 py-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md transition">
         <i class="fa-solid fa-arrow-up-right-from-square"></i> Sortitoutsi'de Aç
       </a>
 
-      <button onclick="exportPitchPNG()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-2 shadow-md transition">
+      <button onclick="exportPitchPNG()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md transition">
         <i class="fa-solid fa-camera"></i> Sahayı İndir
       </button>
     </div>
@@ -111,19 +111,19 @@
     </aside>
 
     <!-- MIDDLE COLUMN: Tactical Pitch -->
-    <main class="flex-1 bg-fmDark flex flex-col items-center justify-start gap-2 p-3 overflow-y-auto min-h-0 relative">
+    <main class="flex-1 bg-fmDark flex flex-col items-center justify-between p-2 min-h-0 relative overflow-hidden">
       
       <!-- Top controls bar -->
-      <div class="w-full max-w-xl flex items-center justify-between bg-fmCard/80 backdrop-blur border border-indigo-950/80 px-4 py-2 rounded-xl shadow-lg shrink-0">
-        <div class="flex items-center gap-3">
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-400 font-medium">Aktif Taktik:</span>
-            <span id="currentTacticTitle" class="text-sm font-bold text-cyan-300">a.fmf</span>
+      <div class="w-full max-w-lg flex items-center justify-between bg-fmCard/80 backdrop-blur border border-indigo-950/80 px-3.5 py-1.5 rounded-xl shadow-md shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-slate-400 font-medium">Aktif:</span>
+            <span id="currentTacticTitle" class="text-xs font-bold text-cyan-300">a.fmf</span>
           </div>
           <span class="text-slate-600">|</span>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1.5">
             <span class="text-xs text-slate-400 font-medium">Diziliş:</span>
-            <select id="formationSelect" onchange="applyFormation(this.value)" class="bg-fmDark border border-indigo-900 text-xs text-indigo-200 font-semibold px-2.5 py-1 rounded-lg focus:outline-none focus:border-cyan-400">
+            <select id="formationSelect" onchange="applyFormation(this.value)" class="bg-fmDark border border-indigo-900 text-xs text-indigo-200 font-semibold px-2 py-0.5 rounded-lg focus:outline-none focus:border-cyan-400">
               <option value="4-2-3-1" selected>4-2-3-1 Geniş</option>
               <option value="4-3-3">4-3-3 DM Geniş (Gegenpress)</option>
               <option value="4-4-2">4-4-2 Klasik</option>
@@ -136,7 +136,7 @@
 
         <div class="flex items-center gap-2">
           <span class="text-xs text-slate-400 font-medium">Zihniyet:</span>
-          <select id="mentalitySelect" onchange="updateMentality(this.value)" class="bg-fmDark border border-indigo-900 text-xs text-emerald-300 font-semibold px-2.5 py-1 rounded-lg focus:outline-none focus:border-emerald-400">
+          <select id="mentalitySelect" onchange="updateMentality(this.value)" class="bg-fmDark border border-indigo-900 text-xs text-emerald-300 font-semibold px-2 py-0.5 rounded-lg focus:outline-none focus:border-emerald-400">
             <option value="Çok Savunmacı">Çok Savunmacı</option>
             <option value="Savunmacı">Savunmacı</option>
             <option value="Dengeli">Dengeli</option>
@@ -148,36 +148,36 @@
       </div>
 
       <!-- Football Pitch Canvas -->
-      <div id="pitchWrapper" style="height: min(520px, calc(100vh - 170px)); min-height: 440px;" class="relative w-full max-w-xl football-pitch rounded-2xl overflow-hidden shadow-2xl border-4 border-emerald-950/80 shrink-0">
+      <div id="pitchWrapper" style="height: calc(100vh - 145px); max-height: 480px; min-height: 320px;" class="relative w-full max-w-md md:max-w-lg football-pitch rounded-2xl overflow-hidden shadow-2xl border-4 border-emerald-950/80 shrink-0">
         <!-- Field markings -->
         <div class="pitch-line border-t-2 w-full top-1/2 -translate-y-1/2"></div>
-        <div class="pitch-line border-2 rounded-full w-28 h-28 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+        <div class="pitch-line border-2 rounded-full w-24 h-24 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
         <div class="pitch-line w-2 h-2 bg-white/70 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
 
         <!-- Top Penalty Box -->
-        <div class="pitch-line border-2 border-t-0 w-64 h-28 top-0 left-1/2 -translate-x-1/2"></div>
-        <div class="pitch-line border-2 border-t-0 w-28 h-10 top-0 left-1/2 -translate-x-1/2"></div>
-        <div class="pitch-line border-2 rounded-full w-24 h-10 top-28 left-1/2 -translate-x-1/2 border-t-0"></div>
+        <div class="pitch-line border-2 border-t-0 w-56 h-24 top-0 left-1/2 -translate-x-1/2"></div>
+        <div class="pitch-line border-2 border-t-0 w-24 h-8 top-0 left-1/2 -translate-x-1/2"></div>
+        <div class="pitch-line border-2 rounded-full w-20 h-8 top-24 left-1/2 -translate-x-1/2 border-t-0"></div>
 
         <!-- Bottom Penalty Box -->
-        <div class="pitch-line border-2 border-b-0 w-64 h-28 bottom-0 left-1/2 -translate-x-1/2"></div>
-        <div class="pitch-line border-2 border-b-0 w-28 h-10 bottom-0 left-1/2 -translate-x-1/2"></div>
-        <div class="pitch-line border-2 rounded-full w-24 h-10 bottom-28 left-1/2 -translate-x-1/2 border-b-0"></div>
+        <div class="pitch-line border-2 border-b-0 w-56 h-24 bottom-0 left-1/2 -translate-x-1/2"></div>
+        <div class="pitch-line border-2 border-b-0 w-24 h-8 bottom-0 left-1/2 -translate-x-1/2"></div>
+        <div class="pitch-line border-2 rounded-full w-20 h-8 bottom-24 left-1/2 -translate-x-1/2 border-b-0"></div>
 
         <!-- Corner arcs -->
-        <div class="pitch-line border-2 border-l-0 border-t-0 rounded-br-full w-5 h-5 top-0 left-0"></div>
-        <div class="pitch-line border-2 border-r-0 border-t-0 rounded-bl-full w-5 h-5 top-0 right-0"></div>
-        <div class="pitch-line border-2 border-l-0 border-b-0 rounded-tr-full w-5 h-5 bottom-0 left-0"></div>
-        <div class="pitch-line border-2 border-r-0 border-b-0 rounded-tl-full w-5 h-5 bottom-0 right-0"></div>
+        <div class="pitch-line border-2 border-l-0 border-t-0 rounded-br-full w-4 h-4 top-0 left-0"></div>
+        <div class="pitch-line border-2 border-r-0 border-t-0 rounded-bl-full w-4 h-4 top-0 right-0"></div>
+        <div class="pitch-line border-2 border-l-0 border-b-0 rounded-tr-full w-4 h-4 bottom-0 left-0"></div>
+        <div class="pitch-line border-2 border-r-0 border-b-0 rounded-tl-full w-4 h-4 bottom-0 right-0"></div>
 
         <!-- 11 Player Tokens Layer -->
         <div id="playersContainer" class="absolute inset-0"></div>
       </div>
 
       <!-- Pitch footer helper text -->
-      <div class="text-center text-[11px] text-slate-400 shrink-0">
+      <div class="text-center text-[10px] text-slate-400 shrink-0 py-0.5">
         <i class="fa-solid fa-arrows-up-down-left-right text-indigo-400 mr-1"></i>
-        <span>Oyuncuları sahadaki herhangi bir noktaya serbestçe sürükleyebilirsiniz. Rol değiştirmek için oyuncuya tıklayın.</span>
+        <span>Oyuncuları serbestçe sürükleyebilirsiniz. Rol düzenlemek için oyuncuya tıklayın.</span>
       </div>
     </main>
 
@@ -303,8 +303,8 @@
   </div>
 
   <!-- Scripts modularly imported -->
-  <script src="/js/formations.js"></script>
-  <script src="/js/pitch.js"></script>
-  <script src="/js/app.js"></script>
+  <script src="/js/formations.js?v=1.1.0"></script>
+  <script src="/js/pitch.js?v=1.1.0"></script>
+  <script src="/js/app.js?v=1.1.0"></script>
 </body>
 </html>

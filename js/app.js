@@ -19,7 +19,18 @@ async function loadTactics(retryCount = 0) {
     if (data.status === "ok") {
       tactics = data.tactics || [];
       document.getElementById("tacticCountBadge").innerText = data.count || 0;
-      document.getElementById("folderLabel").innerText = data.current_folder || "";
+      
+      // Privacy-safe header: show friendly category instead of personal drive path
+      const rawFolder = data.current_folder || "";
+      const cleanFolder = rawFolder.includes("Football Manager")
+        ? "Football Manager 26 \\ tactics"
+        : (rawFolder.length > 35 ? "..." + rawFolder.slice(-30) : rawFolder);
+      const folderEl = document.getElementById("folderLabel");
+      if (folderEl) {
+        folderEl.innerText = cleanFolder || "FM Taktik Klasörü";
+        folderEl.title = rawFolder; // Tooltip allows viewing real path safely on hover
+      }
+
       renderTacticsList(tactics);
       if (tactics.length > 0) {
         selectTactic(tactics[0]);
@@ -72,18 +83,18 @@ function renderTacticsList(list) {
     const isSelected = currentTactic && currentTactic.file_name === t.file_name;
     const tacSize = t.tac_info ? `${(t.tac_info.size / 1024).toFixed(1)} KB` : '';
     return `
-      <div onclick="selectTacticByName('${t.file_name}')" class="p-2.5 rounded-xl border cursor-pointer transition flex items-center justify-between ${
+      <div onclick="selectTacticByName('${t.file_name}')" class="py-1.5 px-2 rounded-lg border cursor-pointer transition flex items-center justify-between ${
         isSelected 
           ? 'bg-indigo-950/90 border-cyan-500/80 shadow-md shadow-cyan-900/20' 
           : 'bg-fmCard/60 hover:bg-fmCard border-indigo-950/60'
       }">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <div class="w-8 h-8 rounded-lg ${isSelected ? 'bg-cyan-500 text-slate-900' : 'bg-indigo-900/60 text-indigo-300'} flex items-center justify-center font-bold text-xs shrink-0">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="w-7 h-7 rounded-lg ${isSelected ? 'bg-cyan-500 text-slate-900' : 'bg-indigo-900/60 text-indigo-300'} flex items-center justify-center font-bold text-xs shrink-0">
             <i class="fa-solid fa-shield-halved"></i>
           </div>
           <div class="min-w-0">
             <h4 class="font-bold text-xs ${isSelected ? 'text-cyan-300' : 'text-slate-200'} truncate">${t.file_name}</h4>
-            <p class="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+            <p class="text-[9px] text-slate-400 flex items-center gap-1 mt-0.5">
               <span>${t.file_size_formatted}</span>
               <span>•</span>
               <span>${t.modified_at}</span>
@@ -91,7 +102,7 @@ function renderTacticsList(list) {
           </div>
         </div>
         <div class="text-right shrink-0">
-          <span class="bg-emerald-950/80 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded border border-emerald-800/50 font-mono">
+          <span class="bg-emerald-950/80 text-emerald-400 text-[9px] px-1.5 py-0.2 rounded border border-emerald-800/50 font-mono">
             ${tacSize || 'FMF'}
           </span>
         </div>

@@ -154,7 +154,8 @@ def get_icon():
 def index_page():
     html_path = os.path.join(os.path.dirname(__file__), "index.html")
     with open(html_path, "r", encoding="utf-8") as f:
-        return f.read()
+        content = f.read()
+    return HTMLResponse(content=content, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 def run_server():
     uvicorn.run("app:app", host="127.0.0.1", port=8765, reload=False)

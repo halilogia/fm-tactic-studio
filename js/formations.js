@@ -4,7 +4,7 @@
 
 const FORMATIONS = {
   "4-2-3-1": [
-    { id: 1, pos: "GK", name: "Kaleci", role: "Libero Kaleci", duty: "De", x: 50, y: 84, num: 1 },
+    { id: 1, pos: "GK", name: "Kaleci", role: "Libero Kaleci", duty: "De", x: 50, y: 82, num: 1 },
     { id: 2, pos: "DR", name: "Sağ Bek", role: "Kanat Bek", duty: "Su", x: 86, y: 68, num: 2 },
     { id: 3, pos: "DC", name: "Sağ Stoper", role: "Pasör Stoper", duty: "De", x: 62, y: 72, num: 4 },
     { id: 4, pos: "DC", name: "Sol Stoper", role: "Stoper", duty: "De", x: 38, y: 72, num: 3 },
@@ -17,7 +17,7 @@ const FORMATIONS = {
     { id: 11, pos: "ST", name: "Santrafor", role: "Sahte Dokuz", duty: "At", x: 50, y: 15, num: 9 }
   ],
   "4-3-3": [
-    { id: 1, pos: "GK", name: "Kaleci", role: "Libero Kaleci", duty: "De", x: 50, y: 84, num: 1 },
+    { id: 1, pos: "GK", name: "Kaleci", role: "Libero Kaleci", duty: "De", x: 50, y: 82, num: 1 },
     { id: 2, pos: "DR", name: "Sağ Bek", role: "Kanat Bek", duty: "Su", x: 86, y: 70, num: 2 },
     { id: 3, pos: "DC", name: "Sağ Stoper", role: "Pasör Stoper", duty: "De", x: 63, y: 74, num: 4 },
     { id: 4, pos: "DC", name: "Sol Stoper", role: "Stoper", duty: "De", x: 37, y: 74, num: 3 },
@@ -30,7 +30,7 @@ const FORMATIONS = {
     { id: 11, pos: "ST", name: "Santrafor", role: "Pres Yapan Forvet", duty: "At", x: 50, y: 14, num: 9 }
   ],
   "4-4-2": [
-    { id: 1, pos: "GK", name: "Kaleci", role: "Kaleci", duty: "De", x: 50, y: 84, num: 1 },
+    { id: 1, pos: "GK", name: "Kaleci", role: "Kaleci", duty: "De", x: 50, y: 82, num: 1 },
     { id: 2, pos: "DR", name: "Sağ Bek", role: "İki Yönlü Bek", duty: "Su", x: 86, y: 70, num: 2 },
     { id: 3, pos: "DC", name: "Sağ Stoper", role: "Stoper", duty: "De", x: 62, y: 74, num: 4 },
     { id: 4, pos: "DC", name: "Sol Stoper", role: "Stoper", duty: "De", x: 38, y: 74, num: 3 },
@@ -43,7 +43,7 @@ const FORMATIONS = {
     { id: 11, pos: "ST", name: "Sol Forvet", role: "Fırsatçı Golcü", duty: "At", x: 40, y: 18, num: 10 }
   ],
   "5-2-3": [
-    { id: 1, pos: "GK", name: "Kaleci", role: "Libero Kaleci", duty: "De", x: 50, y: 84, num: 1 },
+    { id: 1, pos: "GK", name: "Kaleci", role: "Libero Kaleci", duty: "De", x: 50, y: 82, num: 1 },
     { id: 2, pos: "WBR", name: "Sağ Kanat Bek", role: "Kanat Bek", duty: "At", x: 88, y: 55, num: 2 },
     { id: 3, pos: "DC", name: "Sağ Stoper", role: "Kenar Stoper", duty: "De", x: 68, y: 74, num: 4 },
     { id: 4, pos: "DC", name: "Merkez Stoper", role: "Çakılı Stoper", duty: "De", x: 50, y: 76, num: 5 },
@@ -56,7 +56,7 @@ const FORMATIONS = {
     { id: 11, pos: "ST", name: "Santrafor", role: "Yaratıcı Forvet", duty: "At", x: 50, y: 15, num: 9 }
   ],
   "3-5-2": [
-    { id: 1, pos: "GK", name: "Kaleci", role: "Libero Kaleci", duty: "De", x: 50, y: 84, num: 1 },
+    { id: 1, pos: "GK", name: "Kaleci", role: "Libero Kaleci", duty: "De", x: 50, y: 82, num: 1 },
     { id: 2, pos: "DC", name: "Sağ Stoper", role: "Pasör Stoper", duty: "De", x: 70, y: 74, num: 4 },
     { id: 3, pos: "DC", name: "Merkez Stoper", role: "Stoper", duty: "De", x: 50, y: 76, num: 5 },
     { id: 4, pos: "DC", name: "Sol Stoper", role: "Pasör Stoper", duty: "De", x: 30, y: 74, num: 3 },
@@ -69,7 +69,7 @@ const FORMATIONS = {
     { id: 11, pos: "ST", name: "Sol Forvet", role: "Yaratıcı Forvet", duty: "Su", x: 40, y: 17, num: 11 }
   ],
   "4-1-2-1-2": [
-    { id: 1, pos: "GK", name: "Kaleci", role: "Libero Kaleci", duty: "De", x: 50, y: 84, num: 1 },
+    { id: 1, pos: "GK", name: "Kaleci", role: "Libero Kaleci", duty: "De", x: 50, y: 82, num: 1 },
     { id: 2, pos: "DR", name: "Sağ Bek", role: "İki Yönlü Bek", duty: "At", x: 86, y: 68, num: 2 },
     { id: 3, pos: "DC", name: "Sağ Stoper", role: "Pasör Stoper", duty: "De", x: 62, y: 74, num: 4 },
     { id: 4, pos: "DC", name: "Sol Stoper", role: "Stoper", duty: "De", x: 38, y: 74, num: 3 },

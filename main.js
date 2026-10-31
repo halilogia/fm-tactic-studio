@@ -71,7 +71,7 @@ function createWindow() {
     width: 1360,
     height: 840,
     minWidth: 1024,
-    minHeight: 650,
+    minHeight: 560,
     title: 'FM Tactic Studio - Football Manager 26',
     icon: path.join(__dirname, 'app_icon.ico'),
     autoHideMenuBar: true,
