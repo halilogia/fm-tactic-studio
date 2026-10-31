@@ -1,6 +1,8 @@
 # User-specific & local private configs (CRITICAL)
 config.local.json
 tactics_data.json
+shortlist_data.json
+progress_snapshots.json
 .env
 *.local
 

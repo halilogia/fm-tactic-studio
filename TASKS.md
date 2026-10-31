@@ -12,3 +12,11 @@
 - [x] TypeScript migration (`src/*.ts` -> `dist/*.js`) with full GravityGuard G7_TS_FIRST and Web SRP compliance.
 - [x] FM 26 / FM 27 Fixed-Slot (24 canonical slots) drag-and-drop tactical pitch with automatic player swap.
 - [x] Unified `Taktik` and `Scout` top-level tabs with `.fm` save loader and Excel-style inline filterable player database.
+- [x] Dedicated type-and-confirm Club Picker (Kulüp Seçici) with datalist autocomplete and loaned-out/youth player integration.
+- [x] FM Genie Scout Positional Suitability Ratings % (`GK..ST`) and Peak Potential Rating (`PA %`).
+- [x] Tactical pitch "Otomatik En İyi 11 Öner" (Auto-Fill Best XI) + Weakest Link detection + 3 Global Transfer Recommendations.
+- [x] 8-Axis SVG Octagon Radar & interactive Player Comparison.
+- [x] Star Shortlist (`⭐`) & persistent observation Scout Notes.
+- [x] Development & Training Speed Index (`S+/A+/A/B/C`).
+- [x] FM Genie Scout Style Baseline Progress Tracker (`T0`) with `+1 / +2` live attribute deltas & SVG growth curve.
+- [x] Live Save Disk Watcher & 1-click Save Reload (`Kaydı Yenile`).

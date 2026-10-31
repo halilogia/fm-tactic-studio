@@ -187,6 +187,59 @@ class LoadSaveRequest(BaseModel):
     save_ref: str
 
 
+class ShortlistUpdateRequest(BaseModel):
+    uid: int
+    action: str = "toggle"
+    note: str = ""
+
+
+class RecommendXIRequest(BaseModel):
+    club_name: str = ""
+    slots: list = []
+
+
+class ResetBaselineRequest(BaseModel):
+    save_ref: Optional[str] = None
+
+
+@app.get("/api/save-status")
+def get_save_status():
+    return scout_engine.check_save_status()
+
+
+@app.post("/api/reload-save")
+def reload_save_endpoint():
+    try:
+        return scout_engine.reload_current_save()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.get("/api/shortlist")
+def get_shortlist():
+    return {"items": scout_engine.get_shortlist_items(), "count": len(scout_engine.shortlist)}
+
+
+@app.post("/api/shortlist")
+def update_shortlist_endpoint(req: ShortlistUpdateRequest):
+    return scout_engine.update_shortlist(req.uid, req.action, req.note)
+
+
+@app.post("/api/recommend-xi")
+def recommend_xi_endpoint(req: RecommendXIRequest):
+    return scout_engine.recommend_best_xi(req.club_name, req.slots)
+
+
+@app.get("/api/compare")
+def compare_players_endpoint(uid1: int, uid2: int):
+    return scout_engine.compare_players(uid1, uid2)
+
+
+@app.post("/api/reset-baseline")
+def reset_baseline_endpoint(req: ResetBaselineRequest):
+    return scout_engine.reset_baseline_for_active_save()
+
+
 @app.get("/api/saves")
 def get_saves():
     raw_saves = scout_engine.list_local_saves()
@@ -254,6 +307,8 @@ def search_players(
     max_pa: int = 200,
     min_age: int = 14,
     max_age: int = 55,
+    min_best_rating: float = 0.0,
+    min_dev_score: float = 0.0,
     min_consistency: int = 0,
     max_injury_proneness: int = 20,
     min_important_matches: int = 0,
@@ -264,6 +319,7 @@ def search_players(
     max_contract_year: int = 0,
     free_agents_only: bool = False,
     wonderkids_only: bool = False,
+    shortlist_only: bool = False,
     sort_by: str = "pa",
     sort_order: str = "desc",
     limit: int = 100,
@@ -271,6 +327,10 @@ def search_players(
 ):
     if not scout_engine.is_loaded:
         return {"total": 0, "limit": limit, "offset": offset, "players": [], "is_loaded": False}
+
+    shortlist_uids = None
+    if shortlist_only:
+        shortlist_uids = [int(u) for u in scout_engine.shortlist.keys()]
 
     res = scout_engine.db.query_players(
         query=query,
@@ -284,6 +344,8 @@ def search_players(
         max_pa=max_pa,
         min_age=min_age,
         max_age=max_age,
+        min_best_rating=min_best_rating,
+        min_dev_score=min_dev_score,
         min_consistency=min_consistency,
         max_injury_proneness=max_injury_proneness,
         min_important_matches=min_important_matches,
@@ -294,6 +356,7 @@ def search_players(
         max_contract_year=max_contract_year,
         free_agents_only=free_agents_only,
         wonderkids_only=wonderkids_only,
+        shortlist_uids=shortlist_uids,
         sort_by=sort_by,
         sort_order=sort_order,
         limit=limit,
@@ -332,9 +395,14 @@ def export_players_csv(
     min_professionalism: int = 0,
     min_pressure: int = 0,
     wonderkids_only: bool = False,
+    shortlist_only: bool = False,
     sort_by: str = "pa",
     sort_order: str = "desc"
 ):
+    shortlist_uids = None
+    if shortlist_only:
+        shortlist_uids = [int(u) for u in scout_engine.shortlist.keys()]
+
     res = scout_engine.db.query_players(
         query=query,
         name_filter=name_filter,
@@ -355,6 +423,7 @@ def export_players_csv(
         min_professionalism=min_professionalism,
         min_pressure=min_pressure,
         wonderkids_only=wonderkids_only,
+        shortlist_uids=shortlist_uids,
         sort_by=sort_by,
         sort_order=sort_order,
         limit=2000,
@@ -364,16 +433,20 @@ def export_players_csv(
     output.write("\ufeff")  # UTF-8 BOM for Excel Turkish character compatibility
     writer = csv.writer(output, delimiter=";")
     writer.writerow([
-        "UID", "Oyuncu Adı", "Yaş", "Mevkiler", "Kulüp", "Ülke",
-        "CA", "PA", "Gelişim Farkı (PA-CA)",
+        "UID", "Oyuncu Adı", "Yaş", "Mevkiler", "Kulüp", "Kiralık Durumu", "Sahip Kulüp", "Ülke",
+        "CA", "PA", "Gelişim Farkı (PA-CA)", "En İyi Mevki", "Mevki Uygunluk %", "Potansiyel %",
+        "Gelişim İndeksi", "Gelişim Seviyesi",
         "Tutarlılık", "Önemli Maçlar", "Sakatlık Eğilimi", "Çok Yönlülük", "Çirkeflik",
         "Hırs", "Profesyonellik", "Baskıya Dayanıklılık", "Sadakat", "Uyum", "Sportmenlik", "Mizaç",
         "Sol Ayak", "Sağ Ayak", "Boy (cm)"
     ])
     for p in res["players"]:
+        is_on_loan_str = "Kirada" if p.get("is_on_loan") else "Kadroda"
+        parent_club = p.get("loan_parent_club_name") or p.get("club_name") or "-"
         writer.writerow([
-            p["uid"], p["name"], p["age"], p["positions"], p["club_name"], p["nation_name"],
-            p["ca"], p["pa"], p["potential_gap"],
+            p["uid"], p["name"], p["age"], p["positions"], p["club_name"], is_on_loan_str, parent_club, p["nation_name"],
+            p["ca"], p["pa"], p["potential_gap"], p.get("best_pos", "-"), f"{p.get('best_rating', 0)}%", f"{p.get('pot_rating', 0)}%",
+            p.get("dev_score", 0), p.get("dev_tier", "-"),
             p["consistency"], p["important_matches"], p["injury_proneness"], p["versatility"], p["dirtiness"],
             p["ambition"], p["professionalism"], p["pressure"], p["loyalty"], p["adaptability"],
             p["sportsmanship"], p["temperament"],

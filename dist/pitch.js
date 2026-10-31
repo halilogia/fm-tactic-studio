@@ -268,3 +268,133 @@ function stopDrag() {
     document.removeEventListener("mouseup", stopDrag);
     selectPlayer(selectedPlayerIdx);
 }
+let activeBestXiLineup = [];
+async function requestAutoBestXI() {
+    const clubInput = document.getElementById("scoutClubInput");
+    const colClubInput = document.getElementById("colFilterClub");
+    let targetClub = (clubInput && clubInput.value.trim()) || (colClubInput && colClubInput.value.trim()) || "Beşiktaş A.Ş.";
+    const slotsPayload = currentPlayers.map((p) => ({
+        slotId: p.slotId,
+        pos: p.pos
+    }));
+    const modal = document.getElementById("bestXiModal");
+    const clubTitle = document.getElementById("bestXiModalClub");
+    const content = document.getElementById("bestXiModalContent");
+    if (modal)
+        modal.classList.remove("hidden");
+    if (clubTitle)
+        clubTitle.innerText = targetClub;
+    if (content) {
+        content.innerHTML = `<div class="py-12 text-center text-slate-400 text-xs"><i class="fa-solid fa-spinner fa-spin text-xl text-amber-400 mb-2 block"></i> ${targetClub} kadrosu taranıyor ve en iyi 11 hesaplanıyor...</div>`;
+    }
+    try {
+        const res = await fetch("/api/recommend-xi", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                club_name: targetClub,
+                slots: slotsPayload
+            })
+        });
+        const data = await res.json();
+        if (!res.ok)
+            throw new Error(data.detail || "11 önerisi alınamadı");
+        activeBestXiLineup = data.lineup || [];
+        renderBestXiModalContent(data);
+    }
+    catch (err) {
+        if (content) {
+            content.innerHTML = `<div class="py-6 text-center text-rose-400 text-xs">Hata: ${err.message || err}</div>`;
+        }
+    }
+}
+function renderBestXiModalContent(data) {
+    const content = document.getElementById("bestXiModalContent");
+    if (!content)
+        return;
+    const lineup = data.lineup || [];
+    const weakest = data.weakest_link;
+    const targets = data.transfer_targets || [];
+    const lineupRows = lineup.map((p) => `
+    <tr class="border-b border-indigo-950/60 hover:bg-indigo-900/30 text-xs">
+      <td class="px-2.5 py-1.5 font-bold font-mono text-cyan-300">${p.slotId}</td>
+      <td class="px-2 py-1.5 text-slate-400 font-semibold">${p.pos}</td>
+      <td class="px-2.5 py-1.5 font-semibold text-white">${p.name}</td>
+      <td class="px-2 py-1.5 text-center font-mono text-cyan-400 font-bold">${p.ca}</td>
+      <td class="px-2 py-1.5 text-center font-mono text-emerald-400 font-bold">${p.pa}</td>
+      <td class="px-2.5 py-1.5 text-center">
+        <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 font-bold border border-emerald-800 font-mono text-[11px]">%${p.slot_rating}</span>
+      </td>
+    </tr>
+  `).join("");
+    const targetsHtml = targets.map((t) => `
+    <div class="bg-fmDark/90 p-2.5 rounded-xl border border-indigo-900 flex items-center justify-between">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-white text-xs">${t.name}</span>
+          <span class="text-[10px] text-slate-400">(${t.age} Yaş)</span>
+        </div>
+        <div class="text-[11px] text-slate-400 mt-0.5">${t.club_name}</div>
+      </div>
+      <div class="flex items-center gap-2 text-right">
+        <div>
+          <div class="text-[10px] text-slate-400 font-mono">CA: <b class="text-cyan-300">${t.ca}</b> / PA: <b class="text-emerald-400">${t.pa}</b></div>
+          <div class="text-[11px] text-emerald-400 font-bold">%${t.best_rating} Rol Puanı</div>
+        </div>
+        <button onclick="closeBestXiModal(); openScoutPlayerModal(${t.uid});" class="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[11px] font-medium transition">İncele</button>
+      </div>
+    </div>
+  `).join("");
+    content.innerHTML = `
+    <!-- 11 Lineup Table -->
+    <div class="bg-fmDark/80 rounded-xl border border-indigo-950 overflow-hidden">
+      <table class="w-full text-left">
+        <thead class="bg-indigo-950/70 text-[11px] text-slate-300 font-bold border-b border-indigo-900">
+          <tr>
+            <th class="px-2.5 py-1.5">Slot</th>
+            <th class="px-2 py-1.5">Mevki</th>
+            <th class="px-2.5 py-1.5">Seçilen Oyuncu</th>
+            <th class="px-2 py-1.5 text-center">CA</th>
+            <th class="px-2 py-1.5 text-center">PA</th>
+            <th class="px-2.5 py-1.5 text-center">Mevki Uygunluk %</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lineupRows}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Weakest Link Warning & Global Transfer Recommendations -->
+    ${weakest ? `
+      <div class="bg-amber-950/40 border border-amber-600/70 p-3 rounded-xl space-y-2">
+        <div class="flex items-center gap-2 text-amber-300 text-xs font-bold">
+          <i class="fa-solid fa-triangle-exclamation text-amber-400 text-sm"></i>
+          <span>En Zayıf Halka: ${weakest.slotId} (${weakest.pos}) — ${weakest.name} (Uygunluk: %${weakest.slot_rating})</span>
+        </div>
+        <p class="text-[11px] text-slate-300">Bu mevkide kadro kalitesini yükseltmek için save veri tabanından önerilen 3 transfer hedefi:</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+          ${targetsHtml || '<div class="text-slate-400 text-xs col-span-3">Uygun hedef bulunamadı.</div>'}
+        </div>
+      </div>
+    ` : ''}
+  `;
+}
+function applyCurrentBestXi() {
+    if (!activeBestXiLineup || activeBestXiLineup.length === 0)
+        return;
+    activeBestXiLineup.forEach((item) => {
+        const p = currentPlayers.find((cp) => cp.slotId === item.slotId);
+        if (p) {
+            p.name = item.name;
+        }
+    });
+    renderPitch();
+    selectPlayer(selectedPlayerIdx);
+    closeBestXiModal();
+}
+function closeBestXiModal() {
+    const modal = document.getElementById("bestXiModal");
+    if (modal)
+        modal.classList.add("hidden");
+}

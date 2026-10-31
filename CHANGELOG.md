@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-10-31
+### Added
+- **Dedicated Type-and-Confirm Club Picker (Kulüp Seçici):** Replaced static dropdown with autocomplete datalist input + confirm/clear buttons to instantly filter full club squads including loaned-out (`Kirada`) and promoted youth players.
+- **FM Genie Scout Positional Suitability Ratings % (`GK..ST`):** Precise percentage calculations for all 8 position groups (`GK, DC, FB, DM, MC, W, AMC, ST`) + Peak Potential Rating (`PA %`).
+- **Tactic Pitch "Otomatik En İyi 11 Öner" (Auto-Fill Best XI):** Automatically selects the best squad players for the active tactic's 11 slots, identifies the weakest link position (`En Zayıf Halka`), and recommends 3 global transfer targets from the save.
+- **8-Axis SVG Octagon Radar & Player Comparison:** Interactive polygon comparison overlay (Cyan vs Amber) across 8 attributes (`Savunma, Fiziksel, Sürat, Vizyon, Hücum, Teknik, Hava Topu, Zihinsel`) with side-by-side diff metrics.
+- **Shortlist (Takip Listesi) & Scout Notes:** 1-click star bookmarking (`⭐`), shortlist filter toggle, and persistent observation notes with auto-save.
+- **Development & Training Speed Index:** Algorithmic development score (`0-99.0`) and tier badge (`S+, A+, A, B, C`) based on age, professionalism, determination, ambition, and injury proneness.
+- **FM Genie Scout Style Baseline Progress Tracker (+1 / +2):** Career baseline (`T0`) snapshotting with live attribute/CA delta tracking (`+1`, `+2`), plus 5-stage SVG growth trajectory line graph.
+- **Disk Watcher & Instant Save Live-Reload:** Live file modification watcher that detects in-game saves in FM 27 and displays an interactive reload banner.
+
 ## [2.0.0] - 2026-10-31
 ### Added
 - **Unified Top-Level Workspaces (`Taktik` & `Scout (FM 26/27)`):** Integrated Universal Scout directly into FM Tactic Studio with instant tab switching.

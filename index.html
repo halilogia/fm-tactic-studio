@@ -122,6 +122,9 @@
             <option value="Hücumcu">Hücumcu</option>
             <option value="Çok Hücumcu">Çok Hücumcu</option>
           </select>
+          <button onclick="requestAutoBestXI()" class="px-2.5 py-1 bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow transition" title="Kulüp kadrosundan taktik tahtasına en iyi 11'i yerleştirir ve zayıf halkayı tespit eder">
+            <i class="fa-solid fa-wand-magic-sparkles text-amber-200"></i> En İyi 11 Öner
+          </button>
         </div>
       </div>
 
@@ -250,6 +253,17 @@
 
   <!-- ==================== WORKSPACE 2: SCOUT (EXCEL DATA GRID) ==================== -->
   <div id="workspace-scout" class="hidden flex-1 flex flex-col overflow-hidden min-h-0 bg-fmDark">
+    <!-- Live Save Update Notice Banner -->
+    <div id="saveUpdateBanner" class="hidden bg-gradient-to-r from-amber-950 via-amber-900 to-indigo-950 border-b border-amber-500/70 px-4 py-1.5 text-xs text-amber-200 flex items-center justify-between shrink-0 shadow-lg">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-circle-exclamation text-amber-400 animate-pulse text-sm"></i>
+        <span>FM 27 yeni kayıt dosyası algılandı (<b id="saveUpdateDiskTime" class="font-mono text-white">-</b>)! Altyapı/kadro değişikliklerinin yüklenmesi için yenileyin:</span>
+      </div>
+      <button onclick="reloadCurrentSave()" class="px-3 py-0.5 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-bold rounded-lg text-xs shadow transition flex items-center gap-1.5">
+        <i class="fa-solid fa-arrows-rotate"></i> Şimdi Yenile
+      </button>
+    </div>
+
     <!-- Top Save Loader & Excel Toolbar -->
     <div class="bg-fmSidebar border-b border-indigo-950/80 px-4 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0">
       <div class="flex items-center gap-2 flex-wrap">
@@ -257,9 +271,12 @@
           <i class="fa-solid fa-folder-tree"></i> FM 26/27 Save:
         </span>
         <select id="scoutSaveSelect" class="bg-fmDark border border-indigo-900 rounded-lg px-2.5 py-1 text-xs text-slate-200 max-w-xs focus:outline-none focus:border-cyan-400"></select>
-        <input type="text" id="scoutCustomPathInput" placeholder="veya .fm dosya yolu yapıştırın..." class="bg-fmDark border border-indigo-950 rounded-lg px-2.5 py-1 text-xs text-slate-300 w-48 focus:outline-none focus:border-cyan-400">
+        <input type="text" id="scoutCustomPathInput" placeholder="veya .fm dosya yolu yapıştırın..." class="bg-fmDark border border-indigo-950 rounded-lg px-2.5 py-1 text-xs text-slate-300 w-44 focus:outline-none focus:border-cyan-400">
         <button id="scoutLoadSaveBtn" onclick="loadSelectedSaveFile()" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow transition">
           <i class="fa-solid fa-database mr-1"></i> Kaydı Yükle
+        </button>
+        <button id="btnReloadSave" onclick="reloadCurrentSave()" class="px-2.5 py-1 bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-800 text-cyan-300 rounded-lg text-xs font-medium transition flex items-center gap-1" title="Kayıt dosyasını diskten yeniden oku">
+          <i class="fa-solid fa-arrows-rotate" id="reloadSaveIcon"></i> <span id="reloadSaveLabel">Yenile</span>
         </button>
         <button onclick="document.getElementById('scoutUploadFmInput').click()" class="px-2.5 py-1 bg-fmCard hover:bg-indigo-900 border border-indigo-800 text-cyan-300 rounded-lg text-xs font-medium transition">
           <i class="fa-solid fa-file-import mr-1"></i> .fm Dosyası Seç
@@ -268,19 +285,32 @@
         <span id="scoutSaveStatusBadge" class="bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 text-[11px] px-2.5 py-0.5 rounded-full font-mono">Hazır</span>
       </div>
 
+      <!-- Right Controls: Club Selector, Search & Filters -->
       <div class="flex items-center gap-1.5 flex-wrap">
-        <select id="scoutClubQuickSelect" onchange="selectQuickClub(this.value)" class="bg-fmDark border border-indigo-900 rounded-lg px-2 py-1 text-xs text-cyan-300 font-semibold max-w-[175px] focus:outline-none focus:border-cyan-400">
-          <option value="">Tüm Takımlar (Kadro Seç)</option>
-        </select>
-        <input type="text" id="scoutGlobalSearch" oninput="triggerScoutFilterDebounced()" placeholder="Hızlı arama (Ad, Kulüp, Ülke)..." class="bg-fmDark border border-indigo-900 rounded-lg px-2.5 py-1 text-xs text-white w-44 focus:outline-none focus:border-cyan-400">
+        <!-- Dedicated Type-and-Confirm Club Picker -->
+        <div class="relative flex items-center gap-1 bg-fmDark border border-indigo-900 hover:border-indigo-700 rounded-lg px-2 py-0.5 shadow-inner">
+          <i class="fa-solid fa-shield-halved text-cyan-400 text-xs"></i>
+          <input type="text" id="scoutClubInput" list="scoutClubsDatalist" placeholder="Kulüp yazın (ör: Beşiktaş)..." onkeydown="handleClubPickerKeyDown(event)" class="bg-transparent text-xs text-white placeholder-slate-500 w-36 sm:w-44 focus:outline-none">
+          <datalist id="scoutClubsDatalist"></datalist>
+          <button id="scoutClubApplyBtn" onclick="confirmClubPicker()" title="Kulüp Kadrosunu Filtrele" class="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-medium px-2 py-0.5 rounded text-[11px] shadow-sm transition">✔ Seç</button>
+          <button id="scoutClubClearBtn" onclick="clearClubPicker()" title="Kulüp Filtresini Sıfırla" class="text-slate-400 hover:text-rose-400 px-1 text-xs transition">✕</button>
+        </div>
+
+        <input type="text" id="scoutGlobalSearch" oninput="triggerScoutFilterDebounced()" placeholder="Hızlı arama (Ad, Ülke)..." class="bg-fmDark border border-indigo-900 rounded-lg px-2.5 py-1 text-xs text-white w-36 focus:outline-none focus:border-cyan-400">
+
+        <!-- Shortlist Toggle -->
+        <button id="btnShortlistToggle" onclick="toggleShortlistFilter()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-amber-300 border border-amber-700/60 hover:bg-amber-950/50 transition" title="Takip Listemdeki Oyuncular">
+          <i class="fa-solid fa-star mr-1"></i> Takip (<span id="shortlistBadgeCount">0</span>)
+        </button>
+
         <button id="btnWonderkidsToggle" onclick="toggleWonderkidsFilter()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-amber-300 border border-amber-700/60 hover:bg-amber-950/50 transition" title="Yaş ≤ 21 ve PA ≥ 150">
-          <i class="fa-solid fa-star mr-1"></i> Wonderkids
+          <i class="fa-solid fa-sparkles mr-1"></i> Wonderkids
         </button>
         <button id="btnFreeAgentsToggle" onclick="toggleFreeAgentsFilter()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-emerald-300 border border-emerald-700/60 hover:bg-emerald-950/50 transition" title="Kulüpsüz (Serbest) Oyuncular">
           <i class="fa-solid fa-user-check mr-1"></i> Serbest
         </button>
-        <button id="btnExpiringToggle" onclick="toggleExpiringContractsFilter()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-rose-300 border border-rose-700/60 hover:bg-rose-950/50 transition" title="Sözleşmesi 2026-2027 İçinde Bitenler (Bosman)">
-          <i class="fa-solid fa-file-signature mr-1"></i> Sözleşmesi Bitenler
+        <button id="btnExpiringToggle" onclick="toggleExpiringContractsFilter()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-rose-300 border border-rose-700/60 hover:bg-rose-950/50 transition" title="Sözleşmesi 2026-2027 İçinde Bitenler">
+          <i class="fa-solid fa-file-signature mr-1"></i> Sözleşme Sonu
         </button>
         <button onclick="resetScoutFilters()" class="px-2 py-1 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
           Sıfırla
@@ -291,32 +321,48 @@
       </div>
     </div>
 
+    <!-- Active Club Filter Banner (if selected) -->
+    <div id="activeClubBanner" class="hidden bg-indigo-950/70 border-b border-indigo-800/60 px-4 py-1 text-xs text-cyan-300 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-shield-cat text-cyan-400"></i>
+        <span>Aktif Kadro Filtresi: <b id="activeClubTitle" class="text-white font-bold">Beşiktaş A.Ş.</b> <span id="activeClubStats" class="text-slate-400 text-[11px]">(41 Oyuncu)</span></span>
+      </div>
+      <button onclick="clearClubPicker()" class="text-slate-400 hover:text-white text-xs flex items-center gap-1 transition">
+        <i class="fa-solid fa-xmark"></i> Tüm Takımlara Dön
+      </button>
+    </div>
+
     <!-- Excel Spreadsheet Grid Container -->
     <div class="flex-1 min-h-0 overflow-auto">
       <table class="excel-table w-full text-left border-collapse">
         <thead>
           <!-- Row 1: Sortable Column Headers -->
           <tr class="text-[11px] font-bold text-slate-300 border-b border-indigo-900 select-none">
-            <th class="px-2 py-2 text-center w-10 border-r border-indigo-950/60">#</th>
+            <th class="px-2 py-2 text-center w-8 border-r border-indigo-950/60">#</th>
+            <th class="px-1.5 py-2 text-center w-7 border-r border-indigo-950/60" title="Takip Listesi">⭐</th>
             <th data-sort-col="name" onclick="sortScoutColumn('name')" class="px-2.5 py-2 cursor-pointer hover:text-cyan-300 border-r border-indigo-950/60">Oyuncu Adı <span class="sort-indicator text-slate-600">⇅</span></th>
-            <th data-sort-col="age" onclick="sortScoutColumn('age')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-20 border-r border-indigo-950/60">Yaş <span class="sort-indicator text-slate-600">⇅</span></th>
-            <th class="px-2 py-2 w-24 border-r border-indigo-950/60">Mevki</th>
+            <th data-sort-col="age" onclick="sortScoutColumn('age')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60">Yaş <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th class="px-2 py-2 w-20 border-r border-indigo-950/60">Mevki</th>
+            <th data-sort-col="best_rating" onclick="sortScoutColumn('best_rating')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-24 border-r border-indigo-950/60" title="FM Genie Scout Tarzı En İyi Rol Uygunluk %">Rol % <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="pot_rating" onclick="sortScoutColumn('pot_rating')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-20 border-r border-indigo-950/60" title="Potansiyel Zirve Puanı %">Pot % <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="dev_score" onclick="sortScoutColumn('dev_score')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-20 border-r border-indigo-950/60" title="Gelişim ve Antrenman İndeksi (S/A+/A/B/C)">Gelişim <span class="sort-indicator text-slate-600">⇅</span></th>
             <th data-sort-col="club_name" onclick="sortScoutColumn('club_name')" class="px-2.5 py-2 cursor-pointer hover:text-cyan-300 border-r border-indigo-950/60">Kulüp <span class="sort-indicator text-slate-600">⇅</span></th>
             <th data-sort-col="nation_name" onclick="sortScoutColumn('nation_name')" class="px-2 py-2 cursor-pointer hover:text-cyan-300 border-r border-indigo-950/60">Ülke <span class="sort-indicator text-slate-600">⇅</span></th>
             <th data-sort-col="ca" onclick="sortScoutColumn('ca')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60">CA <span class="sort-indicator text-slate-600">⇅</span></th>
             <th data-sort-col="pa" onclick="sortScoutColumn('pa')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60">PA <span class="sort-indicator text-cyan-400 font-bold">▼</span></th>
             <th data-sort-col="potential_gap" onclick="sortScoutColumn('potential_gap')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-14 border-r border-indigo-950/60">Fark <span class="sort-indicator text-slate-600">⇅</span></th>
-            <th data-sort-col="consistency" onclick="sortScoutColumn('consistency')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60" title="Tutarlılık (Consistency)">Tutar. <span class="sort-indicator text-slate-600">⇅</span></th>
-            <th data-sort-col="important_matches" onclick="sortScoutColumn('important_matches')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60" title="Önemli Maçlar">Ö.Maç <span class="sort-indicator text-slate-600">⇅</span></th>
-            <th data-sort-col="injury_proneness" onclick="sortScoutColumn('injury_proneness')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60" title="Sakatlık Eğilimi (Düşük İyi)">Sakat. <span class="sort-indicator text-slate-600">⇅</span></th>
-            <th data-sort-col="versatility" onclick="sortScoutColumn('versatility')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60" title="Çok Yönlülük">ÇokYön <span class="sort-indicator text-slate-600">⇅</span></th>
-            <th data-sort-col="ambition" onclick="sortScoutColumn('ambition')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60" title="Hırs (Ambition)">Hırs <span class="sort-indicator text-slate-600">⇅</span></th>
-            <th data-sort-col="professionalism" onclick="sortScoutColumn('professionalism')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16 border-r border-indigo-950/60" title="Profesyonellik">Prof. <span class="sort-indicator text-slate-600">⇅</span></th>
-            <th data-sort-col="pressure" onclick="sortScoutColumn('pressure')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-16" title="Baskıya Dayanıklılık">Baskı <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="consistency" onclick="sortScoutColumn('consistency')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-14 border-r border-indigo-950/60" title="Tutarlılık (Consistency)">Tutar. <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="important_matches" onclick="sortScoutColumn('important_matches')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-14 border-r border-indigo-950/60" title="Önemli Maçlar">Ö.Maç <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="injury_proneness" onclick="sortScoutColumn('injury_proneness')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-14 border-r border-indigo-950/60" title="Sakatlık Eğilimi (Düşük İyi)">Sakat. <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="versatility" onclick="sortScoutColumn('versatility')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-14 border-r border-indigo-950/60" title="Çok Yönlülük">ÇokYön <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="ambition" onclick="sortScoutColumn('ambition')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-14 border-r border-indigo-950/60" title="Hırs (Ambition)">Hırs <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="professionalism" onclick="sortScoutColumn('professionalism')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-14 border-r border-indigo-950/60" title="Profesyonellik">Prof. <span class="sort-indicator text-slate-600">⇅</span></th>
+            <th data-sort-col="pressure" onclick="sortScoutColumn('pressure')" class="px-2 py-2 text-center cursor-pointer hover:text-cyan-300 w-14" title="Baskıya Dayanıklılık">Baskı <span class="sort-indicator text-slate-600">⇅</span></th>
           </tr>
           <!-- Row 2: Inline Excel Column Filters -->
           <tr class="filter-row border-b border-indigo-900/90">
             <th class="px-1 py-1 text-center text-[9px] text-slate-500 border-r border-indigo-950/50">Filtre</th>
+            <th class="px-1 py-1 text-center border-r border-indigo-950/50"></th>
             <th class="px-1.5 py-1 border-r border-indigo-950/50"><input id="colFilterName" oninput="triggerScoutFilterDebounced()" placeholder="İsim filtrele..." class="excel-input"></th>
             <th class="px-1 py-1 border-r border-indigo-950/50">
               <div class="flex gap-0.5">
@@ -325,6 +371,9 @@
               </div>
             </th>
             <th class="px-1 py-1 border-r border-indigo-950/50"><input id="colFilterPos" oninput="triggerScoutFilterDebounced()" placeholder="GK,DC,ST" class="excel-input"></th>
+            <th class="px-1 py-1 border-r border-indigo-950/50"><input id="colFilterMinRating" oninput="triggerScoutFilterDebounced()" placeholder="≥%" class="excel-input text-center"></th>
+            <th class="px-1 py-1 border-r border-indigo-950/50"></th>
+            <th class="px-1 py-1 border-r border-indigo-950/50"><input id="colFilterMinDev" oninput="triggerScoutFilterDebounced()" placeholder="≥Puan" class="excel-input text-center"></th>
             <th class="px-1.5 py-1 border-r border-indigo-950/50"><input id="colFilterClub" oninput="triggerScoutFilterDebounced()" placeholder="Kulüp..." class="excel-input"></th>
             <th class="px-1.5 py-1 border-r border-indigo-950/50"><input id="colFilterNation" oninput="triggerScoutFilterDebounced()" placeholder="Ülke..." class="excel-input"></th>
             <th class="px-1 py-1 border-r border-indigo-950/50"><input id="colFilterMinCA" oninput="triggerScoutFilterDebounced()" placeholder="≥CA" class="excel-input text-center"></th>
@@ -348,7 +397,7 @@
       <div class="flex items-center gap-3 text-slate-400">
         <span>Toplam Eşleşen: <b id="scoutResultCountLabel" class="text-cyan-300 font-mono">0 kayıt</b></span>
         <span>•</span>
-        <span class="text-[11px]">Detaylı gizli özellik kartı ve taktiğe atamak için satıra tıklayın.</span>
+        <span class="text-[11px]">Detaylı gizli özellik kartı, 8 köşeli radar ve taktiğe atamak için satıra tıklayın.</span>
       </div>
       <div class="flex items-center gap-2">
         <button onclick="scoutPrevPage()" class="px-2.5 py-0.5 bg-fmCard hover:bg-indigo-900 border border-indigo-900 rounded text-slate-200">Önceki 100</button>
@@ -358,20 +407,45 @@
     </div>
   </div>
 
-  <!-- Player Hidden Attributes Detail Modal -->
-  <div id="scoutPlayerModal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-fmCard border border-indigo-800 rounded-2xl max-w-2xl w-full p-5 shadow-2xl relative">
-      <button onclick="closeScoutPlayerModal()" class="absolute top-3 right-3 w-7 h-7 rounded-lg bg-fmDark hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition">
+  <!-- Player Hidden Attributes & Radar Detail Modal -->
+  <div id="scoutPlayerModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-fmCard border border-indigo-800 rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col p-5 shadow-2xl relative overflow-hidden">
+      <button onclick="closeScoutPlayerModal()" class="absolute top-3 right-3 w-7 h-7 rounded-lg bg-fmDark hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition z-20">
         <i class="fa-solid fa-xmark"></i>
       </button>
-      <div id="scoutPlayerModalContent"></div>
+      <div id="scoutPlayerModalContent" class="flex-1 overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <!-- Auto Best XI & Transfer Finder Modal -->
+  <div id="bestXiModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-fmCard border border-indigo-800 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col p-5 shadow-2xl relative overflow-hidden">
+      <button onclick="closeBestXiModal()" class="absolute top-3 right-3 w-7 h-7 rounded-lg bg-fmDark hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div class="flex items-center gap-2 border-b border-indigo-950 pb-3 mb-3">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white text-sm shadow">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">Otomatik En İyi 11 Öner & Transfer Hedefleri</h3>
+          <p class="text-xs text-slate-400">Hedef Kulüp: <b id="bestXiModalClub" class="text-cyan-300">Beşiktaş A.Ş.</b></p>
+        </div>
+      </div>
+      <div id="bestXiModalContent" class="flex-1 overflow-y-auto space-y-4"></div>
+      <div class="border-t border-indigo-950 pt-3 mt-3 flex justify-end gap-2 shrink-0">
+        <button onclick="closeBestXiModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-semibold transition">Kapat</button>
+        <button id="btnApplyBestXi" onclick="applyCurrentBestXi()" class="px-4 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-xs font-bold shadow-lg transition flex items-center gap-1.5">
+          <i class="fa-solid fa-check"></i> 11'i Taktik Tahtasına Yerleştir
+        </button>
+      </div>
     </div>
   </div>
 
   <!-- Compiled TypeScript Bundles -->
-  <script src="/dist/formations.js?v=2.0.3"></script>
-  <script src="/dist/pitch.js?v=2.0.3"></script>
-  <script src="/dist/scout.js?v=2.0.3"></script>
-  <script src="/dist/app.js?v=2.0.3"></script>
+  <script src="/dist/formations.js?v=2.0.4"></script>
+  <script src="/dist/pitch.js?v=2.0.4"></script>
+  <script src="/dist/scout.js?v=2.0.4"></script>
+  <script src="/dist/app.js?v=2.0.4"></script>
 </body>
 </html>
