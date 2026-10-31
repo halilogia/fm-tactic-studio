@@ -234,6 +234,13 @@ async def upload_save_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=str(exc))
 
 
+@app.get("/api/clubs")
+def get_clubs_list():
+    if not scout_engine.is_loaded:
+        return {"clubs": []}
+    return {"clubs": scout_engine.db.list_clubs(limit=400)}
+
+
 @app.get("/api/players")
 def search_players(
     query: str = "",
@@ -254,6 +261,8 @@ def search_players(
     min_ambition: int = 0,
     min_professionalism: int = 0,
     min_pressure: int = 0,
+    max_contract_year: int = 0,
+    free_agents_only: bool = False,
     wonderkids_only: bool = False,
     sort_by: str = "pa",
     sort_order: str = "desc",
@@ -282,6 +291,8 @@ def search_players(
         min_ambition=min_ambition,
         min_professionalism=min_professionalism,
         min_pressure=min_pressure,
+        max_contract_year=max_contract_year,
+        free_agents_only=free_agents_only,
         wonderkids_only=wonderkids_only,
         sort_by=sort_by,
         sort_order=sort_order,

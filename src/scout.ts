@@ -38,6 +38,8 @@ let scoutPageOffset: number = 0;
 const SCOUT_PAGE_LIMIT: number = 100;
 let scoutTotalCount: number = 0;
 let scoutWonderkidsOnly: boolean = false;
+let scoutFreeAgentsOnly: boolean = false;
+let scoutExpiringContractsOnly: boolean = false;
 let scoutDebounceTimer: number | null = null;
 let scoutInitialized: boolean = false;
 
@@ -45,7 +47,35 @@ async function initScoutModule(): Promise<void> {
   if (scoutInitialized) return;
   scoutInitialized = true;
   await fetchAvailableSaves();
+  await fetchQuickClubsList();
   await queryScoutPlayers(0);
+}
+
+async function fetchQuickClubsList(): Promise<void> {
+  const clubSelect = document.getElementById("scoutClubQuickSelect") as HTMLSelectElement | null;
+  if (!clubSelect) return;
+  try {
+    const res = await fetch("/api/clubs");
+    const data = await res.json();
+    const clubs = data.clubs || [];
+    clubSelect.innerHTML = `<option value="">Tüm Takımlar (Kadro Seç)</option>` + clubs.map((c: any) =>
+      `<option value="${c.club_name}">${c.club_name} (${c.player_count} Oyuncu • Ort CA: ${c.avg_ca})</option>`
+    ).join("");
+  } catch (err) {
+    console.error("Kulüp listesi alınamadı:", err);
+  }
+}
+
+function selectQuickClub(clubName: string): void {
+  const clubInput = document.getElementById("colFilterClub") as HTMLInputElement | null;
+  const clubSelect = document.getElementById("scoutClubQuickSelect") as HTMLSelectElement | null;
+  if (clubInput) {
+    clubInput.value = clubName;
+  }
+  if (clubSelect && clubSelect.value !== clubName) {
+    clubSelect.value = clubName;
+  }
+  queryScoutPlayers(0);
 }
 
 async function fetchAvailableSaves(): Promise<void> {
@@ -110,6 +140,7 @@ async function loadSelectedSaveFile(): Promise<void> {
     if (statusBadge && data.save_info) {
       statusBadge.innerText = `${data.save_info.file_name} • ${(data.total_players || 0).toLocaleString("tr-TR")} Oyuncu`;
     }
+    await fetchQuickClubsList();
     await queryScoutPlayers(0);
   } catch (err: any) {
     alert("Kayıt dosyası okuma hatası: " + (err.message || err));
@@ -170,6 +201,8 @@ function buildScoutQueryParams(offsetVal: number): URLSearchParams {
   params.set("min_professionalism", getFilterVal("colFilterMinProf", "0") || "0");
   params.set("min_pressure", getFilterVal("colFilterMinPres", "0") || "0");
   params.set("wonderkids_only", String(scoutWonderkidsOnly));
+  params.set("free_agents_only", String(scoutFreeAgentsOnly));
+  params.set("max_contract_year", scoutExpiringContractsOnly ? "2027" : "0");
   params.set("sort_by", scoutSortBy);
   params.set("sort_order", scoutSortOrder);
   params.set("limit", String(SCOUT_PAGE_LIMIT));
@@ -190,18 +223,38 @@ function toggleWonderkidsFilter(): void {
   scoutWonderkidsOnly = !scoutWonderkidsOnly;
   const btn = document.getElementById("btnWonderkidsToggle");
   if (btn) {
-    if (scoutWonderkidsOnly) {
-      btn.className = "px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 border border-amber-300 shadow-md transition";
-    } else {
-      btn.className = "px-3 py-1 rounded-lg text-xs font-semibold bg-fmDark text-amber-300 border border-amber-700/60 hover:bg-amber-950/50 transition";
-    }
+    btn.className = scoutWonderkidsOnly
+      ? "px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 border border-amber-300 shadow-md transition"
+      : "px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-amber-300 border border-amber-700/60 hover:bg-amber-950/50 transition";
+  }
+  queryScoutPlayers(0);
+}
+
+function toggleFreeAgentsFilter(): void {
+  scoutFreeAgentsOnly = !scoutFreeAgentsOnly;
+  const btn = document.getElementById("btnFreeAgentsToggle");
+  if (btn) {
+    btn.className = scoutFreeAgentsOnly
+      ? "px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950 border border-emerald-300 shadow-md transition"
+      : "px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-emerald-300 border border-emerald-700/60 hover:bg-emerald-950/50 transition";
+  }
+  queryScoutPlayers(0);
+}
+
+function toggleExpiringContractsFilter(): void {
+  scoutExpiringContractsOnly = !scoutExpiringContractsOnly;
+  const btn = document.getElementById("btnExpiringToggle");
+  if (btn) {
+    btn.className = scoutExpiringContractsOnly
+      ? "px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500 text-white border border-rose-300 shadow-md transition"
+      : "px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-rose-300 border border-rose-700/60 hover:bg-rose-950/50 transition";
   }
   queryScoutPlayers(0);
 }
 
 function resetScoutFilters(): void {
   const ids = [
-    "scoutGlobalSearch", "colFilterName", "colFilterClub", "colFilterNation", "colFilterPos",
+    "scoutGlobalSearch", "scoutClubQuickSelect", "colFilterName", "colFilterClub", "colFilterNation", "colFilterPos",
     "colFilterMinAge", "colFilterMaxAge", "colFilterMinCA", "colFilterMinPA",
     "colFilterMinCons", "colFilterMinImp", "colFilterMaxInj", "colFilterMinVers",
     "colFilterMinAmb", "colFilterMinProf", "colFilterMinPres"
@@ -211,10 +264,14 @@ function resetScoutFilters(): void {
     if (el) el.value = "";
   });
   scoutWonderkidsOnly = false;
-  const btn = document.getElementById("btnWonderkidsToggle");
-  if (btn) {
-    btn.className = "px-3 py-1 rounded-lg text-xs font-semibold bg-fmDark text-amber-300 border border-amber-700/60 hover:bg-amber-950/50 transition";
-  }
+  scoutFreeAgentsOnly = false;
+  scoutExpiringContractsOnly = false;
+  const btnWk = document.getElementById("btnWonderkidsToggle");
+  if (btnWk) btnWk.className = "px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-amber-300 border border-amber-700/60 hover:bg-amber-950/50 transition";
+  const btnFa = document.getElementById("btnFreeAgentsToggle");
+  if (btnFa) btnFa.className = "px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-emerald-300 border border-emerald-700/60 hover:bg-emerald-950/50 transition";
+  const btnEx = document.getElementById("btnExpiringToggle");
+  if (btnEx) btnEx.className = "px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-rose-300 border border-rose-700/60 hover:bg-rose-950/50 transition";
   queryScoutPlayers(0);
 }
 
@@ -324,7 +381,7 @@ async function queryScoutPlayers(offsetVal: number = 0): Promise<void> {
           </td>
           <td class="px-2 py-1 text-center font-mono text-slate-200 border-r border-indigo-950/40">${p.age}</td>
           <td class="px-2 py-1 text-cyan-300 font-semibold whitespace-nowrap border-r border-indigo-950/40">${p.positions || "-"}</td>
-          <td class="px-2.5 py-1 text-slate-300 truncate max-w-[140px] border-r border-indigo-950/40">${p.club_name}</td>
+          <td onclick="event.stopPropagation(); selectQuickClub('${p.club_name.replace(/'/g, "\\'")}')" title="Sadece ${p.club_name} kadrosunu filtrelemek için tıklayın" class="px-2.5 py-1 text-slate-300 hover:text-cyan-300 hover:underline truncate max-w-[140px] border-r border-indigo-950/40">${p.club_name}</td>
           <td class="px-2 py-1 text-slate-400 truncate max-w-[90px] border-r border-indigo-950/40">${p.nation_name}</td>
           <td class="px-2 py-1 text-center border-r border-indigo-950/40">${formatAbilityBadge(p.ca)}</td>
           <td class="px-2 py-1 text-center border-r border-indigo-950/40">${formatAbilityBadge(p.pa)}</td>

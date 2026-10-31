@@ -46,9 +46,6 @@
       <button onclick="refreshTactics()" class="px-3 py-1 bg-indigo-950/80 hover:bg-indigo-900 text-indigo-200 border border-indigo-800/60 rounded-lg text-xs font-medium flex items-center gap-1.5 transition">
         <i class="fa-solid fa-rotate text-indigo-400" id="refreshIcon"></i> Yenile
       </button>
-      <a href="https://sortitoutsi.net/tactics/editor" target="_blank" rel="noopener noreferrer" class="px-3 py-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md transition">
-        <i class="fa-solid fa-arrow-up-right-from-square"></i> Sortitoutsi
-      </a>
       <button onclick="exportPitchPNG()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md transition">
         <i class="fa-solid fa-camera"></i> Sahayı İndir
       </button>
@@ -271,16 +268,25 @@
         <span id="scoutSaveStatusBadge" class="bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 text-[11px] px-2.5 py-0.5 rounded-full font-mono">Hazır</span>
       </div>
 
-      <div class="flex items-center gap-2">
-        <input type="text" id="scoutGlobalSearch" oninput="triggerScoutFilterDebounced()" placeholder="Hızlı genel arama (Ad, Kulüp, Ülke)..." class="bg-fmDark border border-indigo-900 rounded-lg px-3 py-1 text-xs text-white w-52 focus:outline-none focus:border-cyan-400">
-        <button id="btnWonderkidsToggle" onclick="toggleWonderkidsFilter()" class="px-3 py-1 rounded-lg text-xs font-semibold bg-fmDark text-amber-300 border border-amber-700/60 hover:bg-amber-950/50 transition">
-          <i class="fa-solid fa-star mr-1"></i> Wonderkids (≤21 & PA≥150)
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <select id="scoutClubQuickSelect" onchange="selectQuickClub(this.value)" class="bg-fmDark border border-indigo-900 rounded-lg px-2 py-1 text-xs text-cyan-300 font-semibold max-w-[175px] focus:outline-none focus:border-cyan-400">
+          <option value="">Tüm Takımlar (Kadro Seç)</option>
+        </select>
+        <input type="text" id="scoutGlobalSearch" oninput="triggerScoutFilterDebounced()" placeholder="Hızlı arama (Ad, Kulüp, Ülke)..." class="bg-fmDark border border-indigo-900 rounded-lg px-2.5 py-1 text-xs text-white w-44 focus:outline-none focus:border-cyan-400">
+        <button id="btnWonderkidsToggle" onclick="toggleWonderkidsFilter()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-amber-300 border border-amber-700/60 hover:bg-amber-950/50 transition" title="Yaş ≤ 21 ve PA ≥ 150">
+          <i class="fa-solid fa-star mr-1"></i> Wonderkids
         </button>
-        <button onclick="resetScoutFilters()" class="px-2.5 py-1 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+        <button id="btnFreeAgentsToggle" onclick="toggleFreeAgentsFilter()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-emerald-300 border border-emerald-700/60 hover:bg-emerald-950/50 transition" title="Kulüpsüz (Serbest) Oyuncular">
+          <i class="fa-solid fa-user-check mr-1"></i> Serbest
+        </button>
+        <button id="btnExpiringToggle" onclick="toggleExpiringContractsFilter()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-fmDark text-rose-300 border border-rose-700/60 hover:bg-rose-950/50 transition" title="Sözleşmesi 2026-2027 İçinde Bitenler (Bosman)">
+          <i class="fa-solid fa-file-signature mr-1"></i> Sözleşmesi Bitenler
+        </button>
+        <button onclick="resetScoutFilters()" class="px-2 py-1 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
           Sıfırla
         </button>
-        <button onclick="exportScoutCsv()" class="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition">
-          <i class="fa-solid fa-file-excel mr-1"></i> Excel / CSV İndir
+        <button onclick="exportScoutCsv()" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition">
+          <i class="fa-solid fa-file-excel mr-1"></i> Excel
         </button>
       </div>
     </div>
@@ -363,9 +369,9 @@
   </div>
 
   <!-- Compiled TypeScript Bundles -->
-  <script src="/dist/formations.js?v=2.0.2"></script>
-  <script src="/dist/pitch.js?v=2.0.2"></script>
-  <script src="/dist/scout.js?v=2.0.2"></script>
-  <script src="/dist/app.js?v=2.0.2"></script>
+  <script src="/dist/formations.js?v=2.0.3"></script>
+  <script src="/dist/pitch.js?v=2.0.3"></script>
+  <script src="/dist/scout.js?v=2.0.3"></script>
+  <script src="/dist/app.js?v=2.0.3"></script>
 </body>
 </html>

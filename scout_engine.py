@@ -110,6 +110,9 @@ class ScoutDatabase:
                 right_foot INTEGER,
                 height_cm INTEGER,
                 transfer_value INTEGER,
+                wage INTEGER,
+                contract_end_year INTEGER,
+                contract_end_str TEXT,
                 consistency INTEGER,
                 important_matches INTEGER,
                 injury_proneness INTEGER,
@@ -132,6 +135,7 @@ class ScoutDatabase:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_club ON players(club_name)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_consistency ON players(consistency)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_injury ON players(injury_proneness)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_contract_year ON players(contract_end_year)")
         self.conn.commit()
 
     def clear(self) -> None:
@@ -147,14 +151,16 @@ class ScoutDatabase:
             INSERT OR REPLACE INTO players (
                 uid, name, age, ca, pa, potential_gap, club_name, nation_name,
                 positions, natural_positions, left_foot, right_foot,
-                height_cm, transfer_value, consistency, important_matches,
+                height_cm, transfer_value, wage, contract_end_year, contract_end_str,
+                consistency, important_matches,
                 injury_proneness, dirtiness, versatility, ambition,
                 loyalty, pressure, professionalism, sportsmanship,
                 temperament, controversy, adaptability
             ) VALUES (
                 :uid, :name, :age, :ca, :pa, :potential_gap, :club_name, :nation_name,
                 :positions, :natural_positions, :left_foot, :right_foot,
-                :height_cm, :transfer_value, :consistency, :important_matches,
+                :height_cm, :transfer_value, :wage, :contract_end_year, :contract_end_str,
+                :consistency, :important_matches,
                 :injury_proneness, :dirtiness, :versatility, :ambition,
                 :loyalty, :pressure, :professionalism, :sportsmanship,
                 :temperament, :controversy, :adaptability
@@ -162,6 +168,18 @@ class ScoutDatabase:
         """
         cursor.executemany(insert_sql, player_records)
         self.conn.commit()
+
+    def list_clubs(self, limit: int = 300) -> List[Dict[str, Any]]:
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT club_name, COUNT(*) as player_count, ROUND(AVG(ca), 1) as avg_ca, MAX(pa) as max_pa
+            FROM players
+            WHERE club_name != ''
+            GROUP BY club_name
+            ORDER BY avg_ca DESC, player_count DESC
+            LIMIT ?
+        """, (limit,))
+        return [dict(r) for r in cursor.fetchall()]
 
     def query_players(
         self,
@@ -183,6 +201,8 @@ class ScoutDatabase:
         min_ambition: int = 0,
         min_professionalism: int = 0,
         min_pressure: int = 0,
+        max_contract_year: int = 0,
+        free_agents_only: bool = False,
         wonderkids_only: bool = False,
         sort_by: str = "pa",
         sort_order: str = "desc",
@@ -217,6 +237,13 @@ class ScoutDatabase:
         if wonderkids_only:
             where_clauses.append("age <= 21 AND pa >= 150")
 
+        if free_agents_only:
+            where_clauses.append("club_name LIKE '%Serbest%'")
+
+        if max_contract_year > 0:
+            where_clauses.append("(contract_end_year > 0 AND contract_end_year <= ?)")
+            params.append(max_contract_year)
+
         if query.strip():
             where_clauses.append("(name LIKE ? OR club_name LIKE ? OR nation_name LIKE ?)")
             q_like = f"%{query.strip()}%"
@@ -248,7 +275,8 @@ class ScoutDatabase:
             "versatility": "versatility", "dirtiness": "dirtiness",
             "ambition": "ambition", "professionalism": "professionalism",
             "pressure": "pressure", "loyalty": "loyalty",
-            "transfer_value": "transfer_value"
+            "transfer_value": "transfer_value", "wage": "wage",
+            "contract_end_year": "contract_end_year"
         }
         safe_sort = allowed_sorts.get(sort_by.lower(), "pa")
         safe_order = "ASC" if sort_order.lower() == "asc" else "DESC"
@@ -261,7 +289,8 @@ class ScoutDatabase:
         select_sql = f"""
             SELECT uid, name, age, ca, pa, potential_gap, club_name, nation_name,
                    positions, natural_positions, left_foot, right_foot,
-                   height_cm, transfer_value, consistency, important_matches,
+                   height_cm, transfer_value, wage, contract_end_year, contract_end_str,
+                   consistency, important_matches,
                    injury_proneness, dirtiness, versatility, ambition,
                    loyalty, pressure, professionalism, sportsmanship,
                    temperament, controversy, adaptability
@@ -395,6 +424,13 @@ class UniversalScoutEngine:
                 right_foot = getattr(p, "right_foot", 10) or 10
                 transfer_val = getattr(p, "transfer_value", 0) or 0
 
+                contract_obj = getattr(p, "contract", None)
+                wage = getattr(contract_obj, "wage", 0) if contract_obj else 0
+                wage = wage or 0
+                contract_end = getattr(contract_obj, "end", None) if contract_obj else None
+                contract_end_year = contract_end.year if contract_end and hasattr(contract_end, "year") else 0
+                contract_end_str = str(contract_end) if contract_end else "-"
+
                 nat_pos = list(p.natural_positions) if hasattr(p, "natural_positions") else []
                 acc_pos = list(p.accomplished_positions) if hasattr(p, "accomplished_positions") else []
                 all_pos = list(dict.fromkeys(nat_pos + acc_pos))
@@ -447,6 +483,9 @@ class UniversalScoutEngine:
                     "right_foot": right_foot,
                     "height_cm": height_cm,
                     "transfer_value": transfer_val,
+                    "wage": wage,
+                    "contract_end_year": contract_end_year,
+                    "contract_end_str": contract_end_str,
                     "hidden": {
                         "consistency": consistency,
                         "important_matches": important_matches,
@@ -482,6 +521,9 @@ class UniversalScoutEngine:
                     "right_foot": right_foot,
                     "height_cm": height_cm,
                     "transfer_value": transfer_val,
+                    "wage": wage,
+                    "contract_end_year": contract_end_year,
+                    "contract_end_str": contract_end_str,
                     "consistency": consistency,
                     "important_matches": important_matches,
                     "injury_proneness": injury_proneness,
