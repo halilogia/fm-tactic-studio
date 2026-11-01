@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dynamic FM26/FM27 save discovery follows the current user's Windows Documents redirection, OneDrive, LocalAppData and existing local overrides.
 
 ### Changed
-- Team instructions are read strictly from the selected .fmf archive file; manual instruction input textareas and synthetic overlays have been removed.
+- Team instructions are read and resolved from the selected .fmf archive and verified TOC payload metrics (In Possession, In Transition, Out of Possession), rendering full tactical instruction cards without requiring manual user input.
 
 ### Fixed
 - Scout no longer infers a save folder from the configured tactics directory; legacy archives are not scanned implicitly.

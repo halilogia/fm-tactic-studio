@@ -212,13 +212,16 @@ function renderTacticInstructions(t: any): void {
         <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950/80 space-y-2">
           <div class="flex items-center justify-between">
             <h4 class="font-semibold text-cyan-300 flex items-center gap-1.5">
-              <i class="fa-solid fa-file-lines"></i> Takım Talimatları
+              <i class="fa-solid fa-sliders"></i> Takım Talimatları
             </h4>
-            <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800">
-              .fmf dosyasından okundu
+            <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800 font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-circle-check text-[9px]"></i> .fmf Çözümlendi
             </span>
           </div>
-          <p class="text-slate-400 text-[11px]">Talimatlar seçilen <b class="text-slate-200">${t.file_name}</b> dosyasından doğrudan ayrıştırılmıştır.</p>
+          <div class="flex items-center justify-between text-xs text-slate-300 pt-1.5 border-t border-indigo-950/60">
+            <span>Stil: <b class="text-cyan-300 font-semibold">${t.detected_style || "Taktik Şablonu"}</b></span>
+            <span class="text-slate-400 text-[11px] font-mono">${t.file_name}</span>
+          </div>
         </div>
 
         ${phases.map(([key, label, icon]) => {

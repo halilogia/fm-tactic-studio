@@ -23,6 +23,16 @@ class InstructionTests(unittest.TestCase):
             self.assertEqual(result['saved_notes'], 'Deneme notu')
             self.assertEqual(fmf.read_bytes(), original)
 
+    def test_valid_tactic_resolves_team_instructions(self):
+        sample = Path(app.get_default_tactics_dir()) / 'a.fmf'
+        if sample.exists():
+            parsed = app.parse_fmf_file(str(sample))
+            self.assertTrue(parsed['instructions_available'])
+            self.assertIsNotNone(parsed['detected_instructions'])
+            self.assertIn('in_possession', parsed['detected_instructions'])
+            self.assertIn('transition', parsed['detected_instructions'])
+            self.assertIn('out_of_possession', parsed['detected_instructions'])
+
     def test_user_name_digits_do_not_change_game_edition(self):
         with tempfile.TemporaryDirectory(prefix='User27-') as directory:
             folder = Path(directory) / 'Sports Interactive/Football Manager 26/games'
