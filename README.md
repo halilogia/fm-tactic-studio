@@ -45,4 +45,4 @@ Football Manager 2026 ve önceki sürümler için geliştirilmiş, oyuna girmede
 12. **Xbox / Game Pass Kayıtları:**
    - Windows'un geçerli kullanıcıya ait Belgeler konumu (OneDrive/yönlendirme dahil), FM26/FM27 `games` klasörleri ve LocalAppData taranır.
    - Xbox sürümünün `Packages/SportsInteractive.FootballManager*/SystemAppData/wgs` kayıtları gerçek adlarıyla `Xbox Cloud` olarak listelenir. Numaralı parçalar yalnızca seçilen kaydı yüklerken uygulamanın kullanıcıya özel önbelleğine birleştirilir; WGS orijinalleri değiştirilmez. Tam eşitlenmemiş veya desteklenmeyen kapsayıcılar yüklenmez.
-   - `Talimatlar` sekmesindeki manuel plan kaydedilebilir. Şifreli FMF taktik içeriğinin otomatik çözümü bu sürümde desteklenmez; bu alanlar oyuna aktarılmaz.
+   - `Talimatlar` sekmesi seçilen `.fmf` dosyasından doğrudan okunur; şifreli AFE arşiv içeriği için manuel veya uydurma veri üretilmez. Çözümlenemeyen alanlar dürüstçe okunamıyor olarak raporlanır.

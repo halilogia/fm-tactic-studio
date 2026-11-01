@@ -8,18 +8,19 @@ import app
 import scout_engine as se
 
 class InstructionTests(unittest.TestCase):
-    def test_manual_instructions_round_trip_without_changing_fmf(self):
+    def test_instructions_come_from_fmf_not_manual_input(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             fmf = root / 'test.fmf'
             original = b'\x02\x01afe.' + bytes(40)
             fmf.write_bytes(original)
-            instructions = {'in_possession': 'Kısa pas', 'transition': 'Karşı pres'}
             with patch.object(app, 'NOTES_FILE', str(root / 'notes.json')):
-                app.save_details({'file_name': 'test.fmf', 'instructions': instructions})
+                app.save_details({'file_name': 'test.fmf', 'notes': 'Deneme notu', 'instructions': {'in_possession': 'Hatalı manuel'}})
                 result = app.get_tactics(str(root))['tactics'][0]
-            self.assertEqual(result['saved_instructions'], instructions)
+            self.assertNotIn('saved_instructions', result)
             self.assertIsNone(result['detected_instructions'])
+            self.assertFalse(result['instructions_available'])
+            self.assertEqual(result['saved_notes'], 'Deneme notu')
             self.assertEqual(fmf.read_bytes(), original)
 
     def test_user_name_digits_do_not_change_game_edition(self):

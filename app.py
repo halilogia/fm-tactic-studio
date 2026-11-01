@@ -119,7 +119,6 @@ def get_tactics(folder: Optional[str] = None):
         try:
             parsed = parse_fmf_file(fpath)
             fname = parsed["file_name"]
-            parsed["saved_instructions"] = custom_data.get(fname, {}).get("instructions", {})
             default_form = parsed.get("detected_formation", "4-2-3-1")
             default_ment = parsed.get("detected_mentality", "Pozitif Futbol")
             if fname in custom_data:
@@ -162,8 +161,7 @@ def save_details(payload: dict):
         "notes": payload.get("notes", ""),
         "formation": payload.get("formation", "4-2-3-1"),
         "mentality": payload.get("mentality", "Pozitif Futbol"),
-        "players": payload.get("players", None),
-        "instructions": payload.get("instructions", {})
+        "players": payload.get("players", None)
     }
     save_tactics_data(data)
     return {"status": "ok", "message": "Taktik detayları başarıyla kaydedildi."}

@@ -192,39 +192,92 @@ function selectTactic(t) {
     renderFmfData(t);
     selectPlayer(0);
 }
-function updateManualInstruction(phase, value) {
-    if (!currentTactic)
-        return;
-    if (!currentTactic.saved_instructions)
-        currentTactic.saved_instructions = {};
-    currentTactic.saved_instructions[phase] = value;
-}
 function renderTacticInstructions(t) {
     const tabEl = document.getElementById("tacticsTab");
     if (!tabEl)
         return;
-    const phases = [
-        ["in_possession", "Topa Sahipken"],
-        ["transition", "Geçiş"],
-        ["out_of_possession", "Top Rakipteyken"]
-    ];
-    tabEl.innerHTML = `
-    <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950 space-y-3">
-      <h4 class="font-semibold text-cyan-300">Takım Talimatları</h4>
-      <p class="text-slate-400 text-xs">Bu .fmf dosyasının talimatları otomatik aktarılamıyor. Aşağıdaki alanlar manuel planınızdır.</p>
-      ${phases.map(([key, label]) => `
-        <label class="block text-xs text-slate-300" for="manualInstruction-${key}">${label}</label>
-        <textarea id="manualInstruction-${key}" rows="3" oninput="updateManualInstruction('${key}', this.value)"
-          class="w-full bg-fmDark border border-indigo-900 rounded-lg p-2 text-xs text-slate-200 resize-y"></textarea>
-      `).join("")}
-      <button onclick="saveCurrentTacticDetails()" class="w-full py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Talimatları Kaydet</button>
-      <p class="text-[10px] text-slate-400">Değişiklikler bu uygulamada saklanır; oyunun .fmf dosyası değiştirilmez.</p>
-    </div>
-  `;
-    for (const [key] of phases) {
-        const input = document.getElementById(`manualInstruction-${key}`);
-        const value = t.saved_instructions?.[key];
-        input.value = typeof value === "string" ? value : "";
+    const instructions = t.detected_instructions;
+    const available = t.instructions_available && instructions;
+    if (available) {
+        const phases = [
+            ["in_possession", "Topa Sahipken", "fa-futbol"],
+            ["transition", "Geçiş Fazı", "fa-arrows-rotate"],
+            ["out_of_possession", "Top Rakipteyken", "fa-shield-halved"]
+        ];
+        tabEl.innerHTML = `
+      <div class="space-y-3.5">
+        <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950/80 space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="font-semibold text-cyan-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-file-lines"></i> Takım Talimatları
+            </h4>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800">
+              .fmf dosyasından okundu
+            </span>
+          </div>
+          <p class="text-slate-400 text-[11px]">Talimatlar seçilen <b class="text-slate-200">${t.file_name}</b> dosyasından doğrudan ayrıştırılmıştır.</p>
+        </div>
+
+        ${phases.map(([key, label, icon]) => {
+            const phaseData = instructions[key];
+            if (!phaseData)
+                return "";
+            const entries = typeof phaseData === "object" ? Object.entries(phaseData) : [["Talimat", phaseData]];
+            return `
+            <div class="bg-fmCard p-3 rounded-xl border border-indigo-950/80 space-y-2">
+              <h5 class="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                <i class="fa-solid ${icon} text-cyan-400 text-[11px]"></i> ${label}
+              </h5>
+              <div class="grid grid-cols-2 gap-1.5">
+                ${entries.map(([k, v]) => `
+                  <div class="bg-fmDark/80 p-2 rounded-lg border border-indigo-950/60">
+                    <span class="block text-[10px] text-slate-500 uppercase tracking-wider">${k}</span>
+                    <span class="text-xs font-medium text-slate-200">${v}</span>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+    }
+    else {
+        tabEl.innerHTML = `
+      <div class="space-y-3.5">
+        <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950/80 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h4 class="font-semibold text-amber-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-lock"></i> Takım Talimatları (.fmf)
+            </h4>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-800">
+              ${t.format_type || "AFE Şifreli"}
+            </span>
+          </div>
+          <p class="text-slate-300 text-xs leading-relaxed">
+            Takım talimatları doğrudan seçilen <b class="text-cyan-300">${t.file_name}</b> dosyasından okunur.
+            Bu dosya şifreli arşiv (.tac / AFE) biçiminde olduğundan talimatlar doğrudan çözümlenemedi.
+          </p>
+          <div class="p-2.5 bg-fmDark/90 rounded-lg border border-indigo-950 text-[11px] text-slate-400 space-y-1">
+            <div class="flex justify-between">
+              <span>Arşiv Biçimi:</span>
+              <span class="text-slate-200 font-mono">${t.format_type || "AFE"}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Taktik Dosyası:</span>
+              <span class="text-slate-200 font-mono">${t.tac_info ? t.tac_info.full_name : "Bulunamadı"}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Durum:</span>
+              <span class="text-amber-300">${t.instructions_note || "Şifreli arşiv içeriği okunamıyor"}</span>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400 italic">
+            Talimatlar dosyadan okunur; çözümlenemeyen alanlar için manuel giriş veya uydurma veri üretilmez.
+          </p>
+        </div>
+      </div>
+    `;
     }
 }
 function updateMentality(m) {
@@ -298,8 +351,7 @@ async function saveCurrentTacticDetails() {
                 notes: notes,
                 formation: formation,
                 mentality: mentality,
-                players: currentPlayers,
-                instructions: currentTactic.saved_instructions || {}
+                players: currentPlayers
             })
         });
         const data = await res.json();

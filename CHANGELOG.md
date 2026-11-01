@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Xbox/Game Pass WGS discovery: read indexed FM save names and ordered numeric blobs, reconstruct an atomic private cache copy for the save reader, and watch the original cloud container for updates. Original Xbox data is never changed.
 - Dynamic FM26/FM27 save discovery follows the current user's Windows Documents redirection, OneDrive, LocalAppData and existing local overrides.
-- Manual team instructions can be recorded separately from imported FMF metadata; unsupported binary tactic payloads remain explicitly unavailable.
+
+### Changed
+- Team instructions are read strictly from the selected .fmf archive file; manual instruction input textareas and synthetic overlays have been removed.
 
 ### Fixed
 - Scout no longer infers a save folder from the configured tactics directory; legacy archives are not scanned implicitly.

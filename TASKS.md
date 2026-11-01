@@ -34,5 +34,5 @@
 - [x] Responsive tactic controls and horizontally scrollable scout grid.
 - [x] User-relative, redirected Documents/OneDrive FM26/FM27 save discovery.
 - [x] Read-only Xbox WGS discovery, ordered save reconstruction and source update watching.
-- [x] Persisted manual team-instruction plans, explicitly separate from FMF content.
+- [x] Enforce that team instructions are read strictly from the selected .fmf archive file; manual instruction fields and artificial overlays are removed.
 - [ ] Decode and validate encrypted FMF formations, roles and team instructions against the game.
