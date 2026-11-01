@@ -287,6 +287,9 @@ async function fetchAvailableSaves() {
         <option value="${s.id}">[${s.version_guess}] ${s.filename} (${s.size_mb} MB)</option>
       `).join("");
         }
+        const activeOption = saves.find((s) => s.filename === data.active_save?.file_name);
+        if (activeOption)
+            selectEl.value = String(activeOption.id);
         if (data.is_loaded && data.active_save && statusBadge) {
             statusBadge.innerText = `${data.active_save.file_name} • ${(data.active_save.total_players || 0).toLocaleString("tr-TR")} Oyuncu`;
             statusBadge.className = "bg-emerald-950/90 text-emerald-300 border border-emerald-700/60 text-[11px] px-2.5 py-0.5 rounded-full font-mono";

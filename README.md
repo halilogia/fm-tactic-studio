@@ -41,3 +41,8 @@ Football Manager 2026 ve önceki sürümler için geliştirilmiş, oyuna girmede
 11. **Altyapı / Genç Takım Etiketleri:**
    - Her kulübün genç takım oyuncuları (`U19`, `U18`, `U17`, `Rezerv`) kulüp sütununda rozetle gösterilir (ör. `Beşiktaş A.Ş. U19`); oyuncu kartında tam takım adı, CSV çıktısında yaş grubu sütunu yer alır.
    - Üst bardaki **Altyapı** filtresi yalnızca genç/rezerv oyuncuları listeler; kulüp seçici ve aktif kulüp şeridi `(35 Oyuncu • 9 Altyapı)` gibi altyapı sayısını gösterir.
+
+12. **Xbox / Game Pass Kayıtları:**
+   - Windows'un geçerli kullanıcıya ait Belgeler konumu (OneDrive/yönlendirme dahil), FM26/FM27 `games` klasörleri ve LocalAppData taranır.
+   - Xbox sürümünün `Packages/SportsInteractive.FootballManager*/SystemAppData/wgs` kayıtları gerçek adlarıyla `Xbox Cloud` olarak listelenir. Numaralı parçalar yalnızca seçilen kaydı yüklerken uygulamanın kullanıcıya özel önbelleğine birleştirilir; WGS orijinalleri değiştirilmez. Tam eşitlenmemiş veya desteklenmeyen kapsayıcılar yüklenmez.
+   - `Talimatlar` sekmesindeki manuel plan kaydedilebilir. Şifreli FMF taktik içeriğinin otomatik çözümü bu sürümde desteklenmez; bu alanlar oyuna aktarılmaz.

@@ -1,6 +1,6 @@
 {
   "name": "fm-tactic-studio",
-  "version": "3.5.1",
+  "version": "3.6.0",
   "description": "Football Manager 2026 & 2027 Tactic Studio & Universal Scout Desktop App (TypeScript)",
   "main": "main.js",
   "scripts": {

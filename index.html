@@ -18,10 +18,10 @@
     })();
   </script>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/dist/tailwind.css?v=3.5.1">
+  <link rel="stylesheet" href="/dist/tailwind.css?v=3.6.0">
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
-  <link rel="stylesheet" href="/css/styles.css?v=3.5.1">
-  <link rel="stylesheet" href="/css/themes.css?v=3.5.1">
+  <link rel="stylesheet" href="/css/styles.css?v=3.6.0">
+  <link rel="stylesheet" href="/css/themes.css?v=3.6.0">
 </head>
 <body class="bg-fmDark text-slate-100 font-sans h-screen w-screen flex flex-col overflow-hidden">
 
@@ -108,16 +108,16 @@
 
     <!-- MIDDLE COLUMN: Fixed-Slot Tactical Pitch -->
     <main class="flex-1 bg-fmDark flex flex-col items-center justify-between p-2 min-h-0 relative overflow-hidden">
-      <div class="w-full max-w-lg flex items-center justify-between bg-fmCard/80 backdrop-blur border border-indigo-950/80 px-3.5 py-1.5 rounded-xl shadow-md shrink-0">
-        <div class="flex items-center gap-2.5">
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs text-slate-400 font-medium">Aktif:</span>
-            <span id="currentTacticTitle" class="text-xs font-bold text-cyan-300">a.fmf</span>
-          </div>
-          <span class="text-slate-600">|</span>
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs text-slate-400 font-medium">Diziliş:</span>
-            <select id="formationSelect" onchange="applyFormation(this.value)" class="bg-fmDark border border-indigo-900 text-xs text-indigo-200 font-semibold px-2 py-0.5 rounded-lg focus:outline-none focus:border-cyan-400">
+      <div class="tactic-toolbar bg-fmCard border border-indigo-950 rounded-xl">
+        <div class="tactic-toolbar-heading">
+          <span class="text-xs text-slate-400">Aktif: <b id="currentTacticTitle" class="text-cyan-300">—</b></span>
+          <button onclick="requestAutoBestXI()" class="tactic-auto-button bg-gradient-to-r from-amber-600 to-rose-600 text-white rounded-lg text-xs font-bold" title="Kulüp kadrosundan taktik tahtasına en iyi 11'i yerleştirir ve zayıf halkayı tespit eder">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> En İyi 11 Öner
+          </button>
+        </div>
+        <div class="tactic-toolbar-fields">
+          <label class="tactic-field text-xs text-slate-400" for="formationSelect">Diziliş:
+            <select id="formationSelect" onchange="applyFormation(this.value)" class="bg-fmDark border border-indigo-900 text-indigo-200 rounded-lg">
               <option value="4-2-3-1" selected>4-2-3-1 Geniş</option>
               <option value="4-3-3">4-3-3 DM Geniş (Gegenpress)</option>
               <option value="4-4-2">4-4-2 Klasik</option>
@@ -125,22 +125,17 @@
               <option value="3-5-2">3-5-2 Çift Forvet</option>
               <option value="4-1-2-1-2">4-1-2-1-2 Baklava (Diamond)</option>
             </select>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-slate-400 font-medium">Zihniyet:</span>
-          <select id="mentalitySelect" onchange="updateMentality(this.value)" class="bg-fmDark border border-indigo-900 text-xs text-emerald-300 font-semibold px-2 py-0.5 rounded-lg focus:outline-none focus:border-emerald-400">
+          </label>
+          <label class="tactic-field text-xs text-slate-400" for="mentalitySelect">Zihniyet:
+            <select id="mentalitySelect" onchange="updateMentality(this.value)" class="bg-fmDark border border-indigo-900 text-emerald-300 rounded-lg">
             <option value="Çok Savunmacı">Çok Savunmacı</option>
             <option value="Savunmacı">Savunmacı</option>
             <option value="Dengeli">Dengeli</option>
             <option value="Pozitif Futbol" selected>Pozitif Futbol</option>
             <option value="Hücumcu">Hücumcu</option>
             <option value="Çok Hücumcu">Çok Hücumcu</option>
-          </select>
-          <button onclick="requestAutoBestXI()" class="px-2.5 py-1 bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow transition" title="Kulüp kadrosundan taktik tahtasına en iyi 11'i yerleştirir ve zayıf halkayı tespit eder">
-            <i class="fa-solid fa-wand-magic-sparkles text-amber-200"></i> En İyi 11 Öner
-          </button>
+            </select>
+          </label>
         </div>
       </div>
 
@@ -264,7 +259,7 @@
     </div>
 
     <!-- Top Save Loader & Excel Toolbar -->
-    <div class="bg-fmSidebar border-b border-indigo-950/80 px-4 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0">
+    <div class="scout-toolbar bg-fmSidebar border-b border-indigo-950/80 px-4 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0">
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-xs font-bold text-cyan-400 flex items-center gap-1">
           <i class="fa-solid fa-folder-tree"></i> FM 26/27 Save:
@@ -503,10 +498,10 @@
   </div>
 
   <!-- Compiled TypeScript Bundles -->
-  <script src="/dist/settings.js?v=3.5.1"></script>
-  <script src="/dist/formations.js?v=3.5.1"></script>
-  <script src="/dist/pitch.js?v=3.5.1"></script>
-  <script src="/dist/scout.js?v=3.5.1"></script>
-  <script src="/dist/app.js?v=3.5.1"></script>
+  <script src="/dist/settings.js?v=3.6.0"></script>
+  <script src="/dist/formations.js?v=3.6.0"></script>
+  <script src="/dist/pitch.js?v=3.6.0"></script>
+  <script src="/dist/scout.js?v=3.6.0"></script>
+  <script src="/dist/app.js?v=3.6.0"></script>
 </body>
 </html>

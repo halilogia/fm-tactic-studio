@@ -193,20 +193,38 @@ function selectTactic(t: any): void {
   selectPlayer(0);
 }
 
+function updateManualInstruction(phase: string, value: string): void {
+  if (!currentTactic) return;
+  if (!currentTactic.saved_instructions) currentTactic.saved_instructions = {};
+  currentTactic.saved_instructions[phase] = value;
+}
+
 function renderTacticInstructions(t: any): void {
   const tabEl = document.getElementById("tacticsTab");
   if (!tabEl) return;
-
-  const tocCount = Array.isArray(t.toc_items) ? t.toc_items.length : 0;
+  const phases = [
+    ["in_possession", "Topa Sahipken"],
+    ["transition", "Geçiş"],
+    ["out_of_possession", "Top Rakipteyken"]
+  ];
   tabEl.innerHTML = `
-    <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950/80 space-y-2">
-      <h4 class="font-semibold text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-lock"></i> Takım Talimatları Okunamıyor</h4>
-      <p class="text-slate-300 text-xs leading-relaxed">FM, takım talimatlarını .fmf arşivinin içindeki şifreli .tac dosyasında saklıyor. Bu sürüm şifreli içeriği çözemediği için talimat uydurmuyor; yalnızca arşivde doğrulanabilen verileri gösteriyor.</p>
-      <div class="flex justify-between text-slate-400"><span>Arşiv öğesi:</span><span class="text-cyan-300 font-mono">${tocCount}</span></div>
-      <div class="flex justify-between text-slate-400"><span>Dosya boyutu:</span><span class="text-slate-200 font-mono">${t.file_size_formatted || "-"}</span></div>
-      <p class="text-[11px] text-slate-500">Diziliş ve zihniyeti yukarıdaki menülerden manuel seçebilir, notlarınızı kaydedebilirsiniz.</p>
+    <div class="bg-fmCard p-3.5 rounded-xl border border-indigo-950 space-y-3">
+      <h4 class="font-semibold text-cyan-300">Takım Talimatları</h4>
+      <p class="text-slate-400 text-xs">Bu .fmf dosyasının talimatları otomatik aktarılamıyor. Aşağıdaki alanlar manuel planınızdır.</p>
+      ${phases.map(([key, label]) => `
+        <label class="block text-xs text-slate-300" for="manualInstruction-${key}">${label}</label>
+        <textarea id="manualInstruction-${key}" rows="3" oninput="updateManualInstruction('${key}', this.value)"
+          class="w-full bg-fmDark border border-indigo-900 rounded-lg p-2 text-xs text-slate-200 resize-y"></textarea>
+      `).join("")}
+      <button onclick="saveCurrentTacticDetails()" class="w-full py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Talimatları Kaydet</button>
+      <p class="text-[10px] text-slate-400">Değişiklikler bu uygulamada saklanır; oyunun .fmf dosyası değiştirilmez.</p>
     </div>
   `;
+  for (const [key] of phases) {
+    const input = document.getElementById(`manualInstruction-${key}`) as HTMLTextAreaElement;
+    const value = t.saved_instructions?.[key];
+    input.value = typeof value === "string" ? value : "";
+  }
 }
 
 function updateMentality(m: string): void {
@@ -285,7 +303,8 @@ async function saveCurrentTacticDetails(): Promise<void> {
         notes: notes,
         formation: formation,
         mentality: mentality,
-        players: currentPlayers
+        players: currentPlayers,
+        instructions: currentTactic.saved_instructions || {}
       })
     });
     const data = await res.json();

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.0] - 2026-11-01
+### Added
+- Xbox/Game Pass WGS discovery: read indexed FM save names and ordered numeric blobs, reconstruct an atomic private cache copy for the save reader, and watch the original cloud container for updates. Original Xbox data is never changed.
+- Dynamic FM26/FM27 save discovery follows the current user's Windows Documents redirection, OneDrive, LocalAppData and existing local overrides.
+- Manual team instructions can be recorded separately from imported FMF metadata; unsupported binary tactic payloads remain explicitly unavailable.
+
+### Fixed
+- Responsive tactic toolbar, sidebar widths, pitch spacing and readable scout table scrolling; long action labels no longer collapse vertically.
+- Save picker selects the actually loaded save, including Xbox cloud records.
+
 ## [3.5.1] - 2026-10-31
 ### Fixed
 - Player roles are visible beneath all pitch tokens and update when edited. Selecting a player opens the role inspector; manual roles are explicitly distinguished from unreadable FMF role data.

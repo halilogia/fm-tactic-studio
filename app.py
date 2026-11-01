@@ -119,6 +119,7 @@ def get_tactics(folder: Optional[str] = None):
         try:
             parsed = parse_fmf_file(fpath)
             fname = parsed["file_name"]
+            parsed["saved_instructions"] = custom_data.get(fname, {}).get("instructions", {})
             default_form = parsed.get("detected_formation", "4-2-3-1")
             default_ment = parsed.get("detected_mentality", "Pozitif Futbol")
             if fname in custom_data:

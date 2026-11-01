@@ -9,6 +9,8 @@ import sys
 import json
 import sqlite3
 import datetime
+from core.save_paths import standard_save_dirs
+from core.xbox_saves import list_xbox_saves, materialize, signature
 from typing import List, Dict, Any, Optional, Tuple
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -299,15 +301,7 @@ def get_candidate_save_dirs() -> List[str]:
     if env_dir and os.path.exists(env_dir):
         dirs.append(env_dir)
 
-    user_home = os.path.expanduser("~")
-    for ver in ("27", "2027", "26", "2026", "2024", "24"):
-        for sub in ("games", "cloud", "Temporary"):
-            cand_doc = os.path.join(user_home, "Documents", "Sports Interactive", f"Football Manager {ver}", sub)
-            if os.path.exists(cand_doc):
-                dirs.append(cand_doc)
-            cand_appdata = os.path.join(user_home, "AppData", "Local", "Sports Interactive", f"Football Manager {ver}", sub)
-            if os.path.exists(cand_appdata):
-                dirs.append(cand_appdata)
+    dirs.extend(standard_save_dirs())
 
     local_cfg = os.path.join(BASE_DIR, "config.local.json")
     if os.path.exists(local_cfg):
@@ -674,6 +668,14 @@ class UniversalScoutEngine:
         
         current_mtime = os.path.getmtime(self.loaded_save_path)
         has_update = current_mtime > (self.loaded_save_mtime + 1.0)
+        if getattr(self, "_active_xbox_entry", None):
+            source = self._active_xbox_entry
+            fresh = next((s for s in list_xbox_saves()
+                          if s["_wgs_index"] == source["_wgs_index"]
+                          and s["_wgs_guid"] == source["_wgs_guid"]), None)
+            if fresh:
+                current_mtime = fresh["modified_timestamp"]
+                has_update = signature(fresh) != self._loaded_xbox_signature
         
         disk_time_str = datetime.datetime.fromtimestamp(current_mtime).strftime("%H:%M:%S")
         loaded_time_str = datetime.datetime.fromtimestamp(self.loaded_save_mtime).strftime("%H:%M:%S") if self.loaded_save_mtime else "-"
@@ -695,6 +697,14 @@ class UniversalScoutEngine:
             if not saves:
                 raise RuntimeError("Yüklenecek FM save dosyası bulunamadı.")
             return self.load_save(str(saves[0]["id"]))
+        if getattr(self, "_active_xbox_entry", None):
+            source = self._active_xbox_entry
+            fresh = next((s for s in self.list_local_saves()
+                          if s.get("_wgs_index") == source["_wgs_index"]
+                          and s.get("_wgs_guid") == source["_wgs_guid"]), None)
+            if fresh is None:
+                raise RuntimeError("Xbox kaydı şu an erişilemiyor; bulut eşitlemesini kontrol edin.")
+            return self.load_save(fresh["_internal_path"])
         return self.load_save(self.loaded_save_path)
 
     # ==================== SHORTLIST MANAGEMENT ====================
@@ -1119,14 +1129,15 @@ class UniversalScoutEngine:
                             mtime = stat.st_mtime
                             lower_full = full_path.lower()
                             is_official_docs = "sports interactive" in lower_full
-                            is_fm27 = "27" in lower_full or "2027" in lower_full
-                            is_fm26 = "26" in lower_full or "2026" in lower_full
+                            path_parts = lower_full.replace("\\", "/").split("/")
+                            is_fm27 = any(part in ("football manager 27", "football manager 2027") for part in path_parts)
+                            is_fm26 = any(part in ("football manager 26", "football manager 2026") for part in path_parts)
                             is_backup = "backup" in f.lower()
                             if is_fm27:
                                 game_guess = "FM 27"
                             elif is_fm26:
                                 game_guess = "FM 26"
-                            elif "2024" in lower_full or "24" in lower_full:
+                            elif any(part in ("football manager 24", "football manager 2024") for part in path_parts):
                                 game_guess = "FM 24"
                             else:
                                 game_guess = "FM 26/27"
@@ -1148,6 +1159,7 @@ class UniversalScoutEngine:
                             sys.stderr.write(f"[Scout Stat Warning] {exc}\n")
                             continue
 
+        saves.extend(list_xbox_saves())
         saves.sort(key=lambda s: (s["is_official_docs"], s["is_fm27"], s["is_modern"], not s["is_backup"], s["modified_timestamp"]), reverse=True)
         for idx, s in enumerate(saves):
             s["id"] = idx
@@ -1155,14 +1167,21 @@ class UniversalScoutEngine:
 
     def resolve_save_path(self, save_ref: str) -> str:
         saves = self.list_local_saves()
+        selected = None
         if save_ref.isdigit():
             idx = int(save_ref)
             if 0 <= idx < len(saves):
-                return saves[idx]["_internal_path"]
-        for s in saves:
-            if s["filename"] == save_ref or s["_internal_path"] == save_ref:
-                return s["_internal_path"]
-        if os.path.exists(save_ref):
+                selected = saves[idx]
+        if selected is None:
+            selected = next((s for s in saves if save_ref in (s["filename"], s["_internal_path"])), None)
+        self._active_xbox_entry = selected if selected and selected.get("source") == "xbox" else None
+        if self._active_xbox_entry:
+            path = materialize(selected)
+            self._loaded_xbox_signature = signature(selected)
+            return path
+        if selected:
+            return selected["_internal_path"]
+        if os.path.isfile(save_ref):
             return save_ref
         raise FileNotFoundError(f"Kayıt dosyası bulunamadı: {save_ref}")
 

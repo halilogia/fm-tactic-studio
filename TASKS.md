@@ -30,3 +30,9 @@
 - [x] Academy/youth team identification per club (`U19`, `U18`, `U17`, `Rezerv`, `Altyapı`) inferred from team slots and squad age profiles; badge in the club column, full label in the player modal and CSV export.
 - [x] `Altyapı` filter toggle (`youth_only`) plus youth counts in the club picker and active-club banner.
 - [x] Club picker limit raised from 400 to 5,000 clubs (all clubs with players resolve); optional `FM_PORT` server port override.
+
+- [x] Responsive tactic controls and horizontally scrollable scout grid.
+- [x] User-relative, redirected Documents/OneDrive FM26/FM27 save discovery.
+- [x] Read-only Xbox WGS discovery, ordered save reconstruction and source update watching.
+- [x] Persisted manual team-instruction plans, explicitly separate from FMF content.
+- [ ] Decode and validate encrypted FMF formations, roles and team instructions against the game.
