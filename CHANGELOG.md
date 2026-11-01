@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Manual team instructions can be recorded separately from imported FMF metadata; unsupported binary tactic payloads remain explicitly unavailable.
 
 ### Fixed
+- Scout no longer infers a save folder from the configured tactics directory; legacy archives are not scanned implicitly.
 - Responsive tactic toolbar, sidebar widths, pitch spacing and readable scout table scrolling; long action labels no longer collapse vertically.
 - Save picker selects the actually loaded save, including Xbox cloud records.
 

@@ -316,12 +316,6 @@ def get_candidate_save_dirs() -> List[str]:
                         for item in val:
                             if isinstance(item, str) and os.path.exists(item):
                                 dirs.append(item)
-                tac_dir = cfg.get("tactics_dir")
-                if isinstance(tac_dir, str) and os.path.exists(tac_dir):
-                    parent_fm = os.path.dirname(tac_dir.rstrip("\\/"))
-                    sibling_games = os.path.join(parent_fm, "games")
-                    if os.path.exists(sibling_games):
-                        dirs.append(sibling_games)
         except OSError as exc:
             sys.stderr.write(f"[Scout Config Warning] {exc}\n")
 
